@@ -1,0 +1,14 @@
+{
+  "name": "ricoz-communication",
+  "version": "1.0.0",
+  "description": "Ricoz Communication Monorepo",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npx ts-node src/index.ts",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

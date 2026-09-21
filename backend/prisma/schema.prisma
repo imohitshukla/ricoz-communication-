@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Workspace {
+  id        String       @id @default(uuid())
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  users     User[]
+  contacts  Contact[]
+  tags      Tag[]
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String?   // Hashed password
+  name        String
+  role        String    @default("Agent") // Owner, Admin, Agent, Viewer
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Contact {
+  id            String         @id @default(uuid())
+  phoneNumber   String
+  name          String?
+  attributes    String?        @default("{}") // Storing JSON as string for SQLite
+  workspaceId   String
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id])
+  tags          Tag[]          @relation("ContactTags")
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([workspaceId, phoneNumber])
+}
+
+model Tag {
+  id          String    @id @default(uuid())
+  name        String
+  color       String    @default("#00a688")
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  contacts    Contact[] @relation("ContactTags")
+  createdAt   DateTime  @default(now())
+}
+
+model Conversation {
+  id          String    @id @default(uuid())
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id])
+  status      String    @default("open") // open, resolved, snoozed
+  channel     String    @default("whatsapp")
+  messages    Message[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  text           String
+  sender         String       // "agent", "contact", "bot"
+  status         String       @default("sent") // sent, delivered, read, failed
+  timestamp      DateTime     @default(now())
+}
+
+model AutoReplyRule {
+  id        String   @id @default(uuid())
+  keyword   String   @unique
+  replyText String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
