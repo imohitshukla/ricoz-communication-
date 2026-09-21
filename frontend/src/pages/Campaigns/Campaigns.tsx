@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Search, Plus, Filter, Play, Pause, BarChart2, MessageSquare, AlertCircle, X } from 'lucide-react';
+import { api } from '@/lib/mockApi';
 import { cn } from '@/lib/utils';
-import axios from 'axios';
 
 export function Campaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -14,10 +14,12 @@ export function Campaigns() {
     if (!campaignName || !messageText) return;
     setIsSending(true);
     try {
-      const res = await axios.post('http://localhost:3000/api/campaigns/send', {
-        messageText,
-        audience: 'all' // For now, broadcast to everyone
+      const res = await api.post('/api/campaigns/send', {
+        name: campaignName,
+        message: messageText,
+        recipients: ['all'] 
       });
+      console.log('Campaign started:', res.data);
 
       // Add to local state
       setCampaigns(prev => [{

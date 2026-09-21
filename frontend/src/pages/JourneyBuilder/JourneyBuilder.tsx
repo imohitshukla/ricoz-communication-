@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Filter, Play, Pause, MessageSquare, Zap, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import axios from 'axios';
+import { api } from '@/lib/mockApi';
 
 type Rule = {
   id: string;
@@ -23,7 +23,7 @@ export function JourneyBuilder() {
 
   const fetchRules = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/rules');
+      const res = await api.get('/api/rules');
       setRules(res.data);
     } catch (err) {
       console.error('Error fetching rules:', err);
@@ -34,7 +34,7 @@ export function JourneyBuilder() {
     if (!keyword || !replyText) return;
     setIsLoading(true);
     try {
-      await axios.post('http://localhost:3000/api/rules', { keyword, replyText });
+      await api.post('/api/rules', { keyword, replyText });
       await fetchRules();
       setIsModalOpen(false);
       setKeyword('');
@@ -48,7 +48,7 @@ export function JourneyBuilder() {
 
   const handleDeleteRule = async (id: string) => {
     try {
-      await axios.delete(`http://localhost:3000/api/rules/${id}`);
+      await api.delete(`/api/rules/${id}`);
       setRules(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       console.error('Error deleting rule:', err);
@@ -57,7 +57,7 @@ export function JourneyBuilder() {
 
   const handleToggleRule = async (id: string, isActive: boolean) => {
     try {
-      await axios.put(`http://localhost:3000/api/rules/${id}/toggle`, { isActive });
+      await api.put(`/api/rules/${id}/toggle`, { isActive });
       setRules(prev => prev.map(r => r.id === id ? { ...r, isActive } : r));
     } catch (err) {
       console.error('Error toggling rule:', err);

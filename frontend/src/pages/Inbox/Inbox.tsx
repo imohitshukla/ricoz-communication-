@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, MoreVertical, Send, Paperclip, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { io, Socket } from 'socket.io-client';
-import axios from 'axios';
+import { api } from '@/lib/mockApi';
 
 type Contact = {
   id: string;
@@ -36,7 +35,6 @@ export function Inbox() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,7 +42,7 @@ export function Inbox() {
 
   const fetchConversations = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/conversations');
+      const res = await api.get('/api/conversations');
       const mappedChats: Chat[] = res.data.map((c: any) => ({
         id: c.id,
         contactId: c.contactId,
@@ -64,6 +62,41 @@ export function Inbox() {
 
   useEffect(() => {
     fetchConversations();
+
+    // Simulate incoming messages or poll with setInterval
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get('/api/conversations');
+        const mappedChats: Chat[] = res.data.map((c: any) => ({
+          id: c.id,
+          contactId: c.contactId,
+          name: c.contact.name || c.contact.phoneNumber,
+          lastMessage: c.messages[0]?.text || '',
+          time: c.messages[0]?.timestamp ? new Date(c.messages[0].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          unread: 0,
+          channel: c.channel,
+          messages: [],
+          contact: c.contact
+        }));
+        setChats(prev => {
+          return mappedChats.map(newChat => {
+            const existing = prev.find(p => p.id === newChat.id);
+            if (existing) {
+              return {
+                ...newChat,
+                unread: existing.unread,
+                messages: existing.messages
+              };
+            }
+            return newChat;
+          });
+        });
+      } catch (err) {
+        console.error('Error polling conversations:', err);
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -71,66 +104,34 @@ export function Inbox() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChat?.messages.length]);
 
-  useEffect(() => {
-    // Connect to backend
-    const newSocket = io('http://localhost:3000');
-    setSocket(newSocket);
-
-    newSocket.on('new_message', (msg: any) => {
-      setChats(prevChats => {
-        // Find if chat exists
-        const exists = prevChats.some(c => c.id === msg.conversationId);
-        
-        if (exists) {
-          return prevChats.map(chat => {
-            if (chat.id === msg.conversationId) {
-              const newMsg: Message = {
-                id: msg.id,
-                conversationId: msg.conversationId,
-                text: msg.text,
-                sender: msg.sender,
-                timestamp: new Date().toISOString(),
-                time: msg.time
-              };
-              return {
-                ...chat,
-                lastMessage: msg.text,
-                time: msg.time,
-                unread: (msg.sender === 'contact' && activeChatId !== chat.id) ? chat.unread + 1 : chat.unread,
-                messages: chat.messages.length > 0 ? [...chat.messages, newMsg] : [] // Only append if we have fetched messages
-              };
-            }
-            return chat;
-          });
-        } else {
-          // New conversation created, refresh list
-          fetchConversations();
-          return prevChats;
-        }
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || !activeChat) return;
+    
+    try {
+      const res = await api.post(`/api/conversations/${activeChat.id}/messages`, {
+        text: inputText,
+        sender: 'agent'
       });
       
-      // If we are looking at the active chat and it's the one receiving a message, but we haven't loaded messages yet, fetch them
-      if (activeChatId === msg.conversationId) {
-        // It's handled by the map above if messages were already loaded
-      }
-    });
-
-    return () => {
-      newSocket.close();
-    };
-  }, [activeChatId]);
-
-  const handleSendMessage = () => {
-    if (!inputText.trim() || !socket || !activeChat) return;
-    
-    socket.emit('send_message', {
-      contactId: activeChat.contactId,
-      name: activeChat.name,
-      text: inputText,
-      channel: activeChat.channel,
-    });
-    
-    setInputText('');
+      const newMsg = {
+        ...res.data,
+        time: new Date(res.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      
+      setChats(prev => prev.map(c => 
+        c.id === activeChat.id ? { 
+          ...c, 
+          messages: [...c.messages, newMsg],
+          lastMessage: inputText,
+          time: newMsg.time
+        } : c
+      ));
+      
+      setInputText('');
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch (err) {
+      console.error('Error sending message:', err);
+    }
   };
 
   const handleChatSelect = async (id: string) => {
@@ -141,7 +142,7 @@ export function Inbox() {
     if (selectedChat && selectedChat.messages.length === 0) {
       setLoadingMessages(true);
       try {
-        const res = await axios.get(`http://localhost:3000/api/conversations/${id}/messages`);
+        const res = await api.get(`/api/conversations/${id}/messages`);
         const msgs = res.data.map((m: any) => ({
           ...m,
           time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

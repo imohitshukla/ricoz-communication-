@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { api } from '@/lib/mockApi';
 import { useAuth } from '../../context/AuthContext';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -17,21 +18,13 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        login(data.token, data.user);
-      } else {
-        setError(data.error || 'Failed to login');
-      }
-    } catch (err) {
-      setError('Network error. Please check your connection.');
+      const response = await api.post('/api/auth/login', { email, password });
+      
+      localStorage.setItem('token', response.data.token);
+      login(response.data.token, response.data.user);
+      navigate('/dashboard/overview');
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || 'Failed to login');
     } finally {
       setIsLoading(false);
     }
