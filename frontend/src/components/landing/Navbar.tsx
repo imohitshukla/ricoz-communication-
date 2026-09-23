@@ -149,9 +149,9 @@ export function Navbar() {
 
           <div className="hidden lg:flex items-center space-x-4 xl:space-x-6 relative z-10">
             <button onClick={() => navigate('/demo')} className="text-sm font-semibold text-gray-700 hover:text-[#00a688] transition-colors">Demo</button>
-            <button onClick={() => navigate('/dashboard')} className="text-sm font-semibold text-gray-700 hover:text-[#00a688] transition-colors">Login</button>
+            <button onClick={() => navigate('/login')} className="text-sm font-semibold text-gray-700 hover:text-[#00a688] transition-colors">Login</button>
             <button 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/signup')}
               className="bg-[#00a688] text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-[#008c73] transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-[#00a688]/20 whitespace-nowrap"
             >
               Start Free Trial

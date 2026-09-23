@@ -3,18 +3,31 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AIAgentConfig {
+  id              String    @id @default(uuid())
+  workspaceId     String    @unique
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  isActive        Boolean   @default(false)
+  systemPrompt    String    @default("You are a helpful customer support agent for Ricoz.")
+  businessContext String?
+  faq             String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Workspace {
-  id        String       @id @default(uuid())
-  name      String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  users     User[]
-  contacts  Contact[]
-  tags      Tag[]
+  id            String         @id @default(uuid())
+  name          String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  users         User[]
+  contacts      Contact[]
+  tags          Tag[]
+  aiAgentConfig AIAgentConfig?
 }
 
 model User {

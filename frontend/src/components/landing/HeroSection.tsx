@@ -46,12 +46,15 @@ export function HeroSection() {
             className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4"
           >
             <button 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/signup')}
               className="w-full sm:w-auto bg-[#00a688] text-white px-8 py-3.5 rounded-full text-base font-semibold hover:bg-[#008c73] transition-all flex items-center justify-center group shadow-lg shadow-[#00a688]/20"
             >
               Start Free Trial <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </button>
-            <button className="w-full sm:w-auto bg-transparent border-2 border-white text-white px-8 py-3.5 rounded-full text-base font-semibold hover:bg-white/10 transition-colors">
+            <button 
+              onClick={() => navigate('/demo')}
+              className="w-full sm:w-auto bg-transparent border-2 border-white text-white px-8 py-3.5 rounded-full text-base font-semibold hover:bg-white/10 transition-colors"
+            >
               Book a Demo
             </button>
           </motion.div>

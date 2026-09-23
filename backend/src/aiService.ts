@@ -19,16 +19,33 @@ try {
 export async function generateAgentResponse(
   contactName: string, 
   incomingMessage: string, 
-  recentMessages: { text: string, sender: string }[] = []
+  recentMessages: { text: string, sender: string }[] = [],
+  workspaceId?: string
 ): Promise<string> {
   if (!aiClient) {
     return `Hi ${contactName}, I'm the Ricoz AI Agent (Mock). Please add your GEMINI_API_KEY to the .env file to enable smart AI responses!`;
   }
 
   try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    let basePrompt = `You are a helpful, professional, and friendly customer support AI agent for a company called "Ricoz Communication".
+Your goal is to assist customers quickly and accurately. Keep your responses concise (1-3 sentences) since they are sent via WhatsApp.`;
+    
+    if (workspaceId) {
+      const config = await prisma.aIAgentConfig.findUnique({ where: { workspaceId } });
+      if (config && config.isActive) {
+        basePrompt = config.systemPrompt;
+        if (config.businessContext) basePrompt += `\nBusiness Context: ${config.businessContext}`;
+        if (config.faq) basePrompt += `\nFAQ Knowledge: ${config.faq}`;
+      } else if (config && !config.isActive) {
+        return ""; // Agent disabled
+      }
+    }
+
     // Construct the context/prompt for the AI
-    let conversationContext = `You are a helpful, professional, and friendly customer support AI agent for a company called "Ricoz Communication".
-Your goal is to assist customers quickly and accurately. Keep your responses concise (1-3 sentences) since they are sent via WhatsApp.
+    let conversationContext = `${basePrompt}
 
 Customer Name: ${contactName}
 
@@ -37,7 +54,7 @@ Recent Conversation History:
 
     // Add recent history if available
     if (recentMessages.length > 0) {
-      recentMessages.forEach(msg => {
+      recentMessages.forEach((msg: any) => {
         conversationContext += `${msg.sender === 'contact' ? 'Customer' : 'Agent/Bot'}: ${msg.text}\n`;
       });
     }

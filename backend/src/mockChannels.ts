@@ -87,7 +87,8 @@ export function setupMockChannels(io: Server) {
         replyTextToUse = await generateAgentResponse(
           contact.name || contact.phoneNumber,
           text,
-          history
+          history,
+          contact.workspaceId
         );
         console.log(`AI Text Agent generated response.`);
       }

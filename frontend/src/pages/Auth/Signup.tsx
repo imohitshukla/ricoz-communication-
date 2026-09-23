@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MessageCircle, MessageSquare, Info, ShieldCheck } from 'lucide-react';
+import { api } from '@/lib/api';
 
 export function Signup() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ export function Signup() {
   
   // Step 1 State
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
@@ -26,7 +28,7 @@ export function Signup() {
   const [error, setError] = useState('');
 
   const handleNext = () => {
-    if (!email || !firstName || !lastName) {
+    if (!email || !password || !firstName || !lastName) {
       setError('Please fill in all fields to continue.');
       return;
     }
@@ -39,18 +41,27 @@ export function Signup() {
     setStep(2);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || !companyName) {
       setError('Please fill in phone number and company name.');
       return;
     }
     setError('');
-    // Mock API submission here
-    console.log('Form submitted', { email, firstName, lastName, phone, companyName });
     
-    // Navigate to onboarding flow
-    navigate('/onboarding');
+    try {
+      const res = await api.post('/api/auth/signup', {
+        email,
+        password,
+        name: `${firstName} ${lastName}`
+      });
+      
+      // Save token and navigate
+      localStorage.setItem('token', res.token);
+      navigate('/onboarding');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create account. Email may already be in use.');
+    }
   };
 
   return (
@@ -216,7 +227,13 @@ export function Signup() {
                       <Info className="w-5 h-5" />
                     </div>
                   </div>
-                  <p className="text-white/70 text-xs mt-1.5 ml-1">You'll receive an auto-generated password on this email.</p>
+                  <input 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create a Secure Password" 
+                    className="w-full mt-4 rounded-lg border border-transparent px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#00a688] bg-white font-medium text-gray-800"
+                  />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">

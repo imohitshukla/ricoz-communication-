@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 export function Pricing() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Marketing & Support Hub');
   const [billingCycle, setBillingCycle] = useState('Quarterly');
 
@@ -88,7 +90,7 @@ export function Pricing() {
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900">
                       Unlimited agents (Owner Roles)
                     </div>
-                    <button className="w-full py-2.5 bg-[#ff9900] text-white font-bold rounded hover:bg-[#e68a00] transition-colors">
+                    <button onClick={() => navigate('/signup')} className="w-full py-2.5 bg-[#ff9900] text-white font-bold rounded hover:bg-[#e68a00] transition-colors">
                       Start Free Trial
                     </button>
                   </td>
@@ -102,7 +104,7 @@ export function Pricing() {
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900 flex items-center">
                       Unlimited agents (All Roles) <Info className="w-3 h-3 ml-1 text-gray-400" />
                     </div>
-                    <button className="w-full py-2.5 bg-[#00a688] text-white font-bold rounded hover:bg-[#008c73] transition-colors">
+                    <button onClick={() => navigate('/signup')} className="w-full py-2.5 bg-[#00a688] text-white font-bold rounded hover:bg-[#008c73] transition-colors">
                       Start Free Trial
                     </button>
                   </td>
@@ -116,7 +118,7 @@ export function Pricing() {
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900 flex items-center">
                       Unlimited agents (All Roles) <Info className="w-3 h-3 ml-1 text-gray-400" />
                     </div>
-                    <button className="w-full py-2.5 bg-[#0088cc] text-white font-bold rounded hover:bg-[#0077b3] transition-colors">
+                    <button onClick={() => navigate('/signup')} className="w-full py-2.5 bg-[#0088cc] text-white font-bold rounded hover:bg-[#0077b3] transition-colors">
                       Start Free Trial
                     </button>
                   </td>

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export interface ProductMarketingProps {
   title: ReactNode;
@@ -12,6 +13,7 @@ export interface ProductMarketingProps {
 }
 
 export function ProductMarketingPage({ title, subtitle, heroImage, benefits, features, ctaText = 'Start Free Trial' }: ProductMarketingProps) {
+  const navigate = useNavigate();
   return (
     <div className="pt-32 pb-24 bg-white min-h-screen">
       {/* Hero Section */}
@@ -39,10 +41,10 @@ export function ProductMarketingPage({ title, subtitle, heroImage, benefits, fea
               transition={{ delay: 0.2 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <button className="bg-[#00a688] text-white px-8 py-4 rounded-full font-bold hover:bg-[#008c73] transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-[#00a688]/30 text-lg">
+              <button onClick={() => navigate('/signup')} className="bg-[#00a688] text-white px-8 py-4 rounded-full font-bold hover:bg-[#008c73] transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-[#00a688]/30 text-lg">
                 {ctaText}
               </button>
-              <button className="bg-white text-primary border border-border px-8 py-4 rounded-full font-bold hover:bg-gray-50 transition-colors text-lg flex items-center justify-center">
+              <button onClick={() => navigate('/demo')} className="bg-white text-primary border border-border px-8 py-4 rounded-full font-bold hover:bg-gray-50 transition-colors text-lg flex items-center justify-center">
                 Book a Demo <ArrowRight className="w-5 h-5 ml-2" />
               </button>
             </motion.div>

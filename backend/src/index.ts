@@ -24,6 +24,7 @@ import { conversationsRouter } from './routes/conversations';
 import { campaignsRouter } from './routes/campaigns';
 import { rulesRouter } from './routes/rules';
 import { analyticsRouter } from './routes/analytics';
+import { aiRouter } from './routes/ai';
 import authRoutes from './routes/auth';
 import { PrismaClient } from '@prisma/client';
 
@@ -40,6 +41,7 @@ app.use('/api/conversations', conversationsRouter);
 app.use('/api/campaigns', campaignsRouter);
 app.use('/api/rules', rulesRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/ai', aiRouter);
 
 // Setup mock channels to emit random messages
 setupMockChannels(io);
