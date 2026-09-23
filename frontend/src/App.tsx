@@ -12,6 +12,7 @@ import { Analytics } from './pages/Analytics/Analytics';
 import { Team } from './pages/Team/Team';
 import { Integrations } from './pages/Integrations/Integrations';
 import { Settings } from './pages/Settings/Settings';
+import { Billing } from './pages/Settings/Billing';
 import { WhatsAppAIAgent } from './pages/Automation/WhatsAppAIAgent';
 
 import { PublicLayout } from './components/layout/PublicLayout';
@@ -69,6 +70,7 @@ function App() {
           <Route path="team" element={<Team />} />
           <Route path="integrations" element={<Integrations />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="billing" element={<Billing />} />
           <Route path="*" element={<div className="p-8 text-secondary">Module coming soon</div>} />
         </Route>
       </Route>

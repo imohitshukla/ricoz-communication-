@@ -229,6 +229,23 @@ export function Sidebar() {
             </NavLink>
           </div>
 
+          <div className="px-6 mt-4 mb-2">
+            <span className="text-[10px] font-bold text-[#8a98b4] tracking-wider uppercase">Account</span>
+          </div>
+
+          <div>
+            <NavLink
+              to="/dashboard/billing"
+              className={({ isActive }) => cn(
+                "flex items-center px-6 py-2.5 transition-colors text-sm font-medium",
+                isActive ? "text-[#00a688] bg-[#00a688]/10 border-l-4 border-[#00a688]" : "text-gray-700 hover:bg-gray-100 border-l-4 border-transparent"
+              )}
+            >
+              <ShoppingBag className="w-4 h-4 mr-3" />
+              Billing
+            </NavLink>
+          </div>
+
         </div>
       </nav>
 

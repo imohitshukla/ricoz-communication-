@@ -20,14 +20,23 @@ model AIAgentConfig {
 }
 
 model Workspace {
-  id            String         @id @default(uuid())
-  name          String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  users         User[]
-  contacts      Contact[]
-  tags          Tag[]
-  aiAgentConfig AIAgentConfig?
+  id                   String         @id @default(uuid())
+  name                 String
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  
+  // Billing Fields
+  stripeCustomerId     String?        @unique
+  stripeSubscriptionId String?        @unique
+  subscriptionStatus   String         @default("trialing") // trialing, active, past_due, canceled
+  planTier             String         @default("Free Trial") // Starter, Growth, Advanced
+  trialEndsAt          DateTime?
+  currentPeriodEnd     DateTime?
+
+  users                User[]
+  contacts             Contact[]
+  tags                 Tag[]
+  aiAgentConfig        AIAgentConfig?
 }
 
 model User {

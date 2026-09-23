@@ -3,11 +3,36 @@ import { motion } from 'framer-motion';
 import { Check, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 export function Pricing() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Marketing & Support Hub');
   const [billingCycle, setBillingCycle] = useState('Quarterly');
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  const handleCheckout = async (planName: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // Not logged in, go to signup
+      navigate('/signup');
+      return;
+    }
+
+    setIsLoading(planName);
+    try {
+      // Call backend to create stripe checkout session
+      const response = await api.post('/api/billing/create-checkout-session', { planName });
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to initiate checkout. Please try again.');
+    } finally {
+      setIsLoading(null);
+    }
+  };
 
   const tabs = ['Marketing & Support Hub', 'WhatsApp AI Agents', 'Sales CRM'];
   const cycles = [
@@ -90,8 +115,8 @@ export function Pricing() {
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900">
                       Unlimited agents (Owner Roles)
                     </div>
-                    <button onClick={() => navigate('/signup')} className="w-full py-2.5 bg-[#ff9900] text-white font-bold rounded hover:bg-[#e68a00] transition-colors">
-                      Start Free Trial
+                    <button onClick={() => handleCheckout('Starter')} disabled={isLoading === 'Starter'} className="w-full py-2.5 bg-[#ff9900] text-white font-bold rounded hover:bg-[#e68a00] transition-colors disabled:opacity-50">
+                      {isLoading === 'Starter' ? 'Loading...' : 'Start Free Trial'}
                     </button>
                   </td>
 
@@ -104,8 +129,8 @@ export function Pricing() {
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900 flex items-center">
                       Unlimited agents (All Roles) <Info className="w-3 h-3 ml-1 text-gray-400" />
                     </div>
-                    <button onClick={() => navigate('/signup')} className="w-full py-2.5 bg-[#00a688] text-white font-bold rounded hover:bg-[#008c73] transition-colors">
-                      Start Free Trial
+                    <button onClick={() => handleCheckout('Growth')} disabled={isLoading === 'Growth'} className="w-full py-2.5 bg-[#00a688] text-white font-bold rounded hover:bg-[#008c73] transition-colors disabled:opacity-50">
+                      {isLoading === 'Growth' ? 'Loading...' : 'Start Free Trial'}
                     </button>
                   </td>
 
@@ -118,8 +143,8 @@ export function Pricing() {
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900 flex items-center">
                       Unlimited agents (All Roles) <Info className="w-3 h-3 ml-1 text-gray-400" />
                     </div>
-                    <button onClick={() => navigate('/signup')} className="w-full py-2.5 bg-[#0088cc] text-white font-bold rounded hover:bg-[#0077b3] transition-colors">
-                      Start Free Trial
+                    <button onClick={() => handleCheckout('Advanced')} disabled={isLoading === 'Advanced'} className="w-full py-2.5 bg-[#0088cc] text-white font-bold rounded hover:bg-[#0077b3] transition-colors disabled:opacity-50">
+                      {isLoading === 'Advanced' ? 'Loading...' : 'Start Free Trial'}
                     </button>
                   </td>
 
