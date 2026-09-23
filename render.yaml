@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ricoz-backend
+    env: node
+    plan: free
+    region: ohio
+    buildCommand: "cd backend && npm install && npm run build"
+    startCommand: "cd backend && npm start"
+    envVars:
+      - key: NODE_VERSION
+        value: 20.x
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false # User must provide this manually from Railway
+      - key: FRONTEND_URL
+        value: https://ricoz-communication-74lg.vercel.app # Your live Vercel URL
