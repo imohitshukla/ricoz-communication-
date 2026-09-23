@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Plus, Filter, Play, Pause, BarChart2, MessageSquare, AlertCircle, X } from 'lucide-react';
-import { api } from '@/lib/mockApi';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export function Campaigns() {

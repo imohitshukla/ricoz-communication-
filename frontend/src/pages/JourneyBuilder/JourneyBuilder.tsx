@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Filter, Play, Pause, MessageSquare, Zap, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/mockApi';
+import { api } from '@/lib/api';
 
 type Rule = {
   id: string;

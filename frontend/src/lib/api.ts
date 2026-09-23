@@ -1,18 +1,26 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import axios from 'axios';
+
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+const axiosInstance = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add interceptor for auth token if needed in the future
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 export const api = {
-  get: async (endpoint: string) => {
-    const res = await fetch(`${API_URL}${endpoint}`);
-    if (!res.ok) throw new Error(`API GET Error: ${res.statusText}`);
-    return res.json();
-  },
-  post: async (endpoint: string, data: any) => {
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error(`API POST Error: ${res.statusText}`);
-    return res.json();
-  },
+  get: (url: string) => axiosInstance.get(url),
+  post: (url: string, data?: any) => axiosInstance.post(url, data),
+  put: (url: string, data?: any) => axiosInstance.put(url, data),
+  delete: (url: string) => axiosInstance.delete(url),
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { api } from '@/lib/mockApi';
+import { api } from '@/lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { CheckCircle2 } from 'lucide-react';
 

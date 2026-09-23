@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, MoreVertical, Send, Paperclip, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/mockApi';
+import { api, API_URL } from '@/lib/api';
+import { io, Socket } from 'socket.io-client';
 
 type Contact = {
   id: string;
@@ -35,6 +36,7 @@ export function Inbox() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -62,41 +64,51 @@ export function Inbox() {
 
   useEffect(() => {
     fetchConversations();
+    
+    let newSocket = io(API_URL.replace('/api', '')); // Connect to root of backend
+    setSocket(newSocket);
 
-    // Simulate incoming messages or poll with setInterval
-    const interval = setInterval(async () => {
-      try {
-        const res = await api.get('/api/conversations');
-        const mappedChats: Chat[] = res.data.map((c: any) => ({
-          id: c.id,
-          contactId: c.contactId,
-          name: c.contact.name || c.contact.phoneNumber,
-          lastMessage: c.messages[0]?.text || '',
-          time: c.messages[0]?.timestamp ? new Date(c.messages[0].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-          unread: 0,
-          channel: c.channel,
-          messages: [],
-          contact: c.contact
-        }));
-        setChats(prev => {
-          return mappedChats.map(newChat => {
-            const existing = prev.find(p => p.id === newChat.id);
-            if (existing) {
+    newSocket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    newSocket.on('new_message', (msg: any) => {
+      setChats(prevChats => {
+        // Find if chat exists
+        const exists = prevChats.some(c => c.id === msg.conversationId);
+        
+        if (exists) {
+          return prevChats.map(chat => {
+            if (chat.id === msg.conversationId) {
+              const newMsg: Message = {
+                id: msg.id,
+                conversationId: msg.conversationId,
+                text: msg.text,
+                sender: msg.sender,
+                timestamp: new Date().toISOString(),
+                time: msg.time
+              };
               return {
-                ...newChat,
-                unread: existing.unread,
-                messages: existing.messages
+                ...chat,
+                lastMessage: msg.text,
+                time: msg.time,
+                unread: (msg.sender === 'contact' && activeChatId !== chat.id) ? chat.unread + 1 : chat.unread,
+                messages: chat.messages.length > 0 ? [...chat.messages, newMsg] : [] // Only append if we have fetched messages
               };
             }
-            return newChat;
+            return chat;
           });
-        });
-      } catch (err) {
-        console.error('Error polling conversations:', err);
-      }
-    }, 15000);
+        } else {
+          // New conversation created, refresh list
+          fetchConversations();
+          return prevChats;
+        }
+      });
+    });
 
-    return () => clearInterval(interval);
+    return () => {
+      if (newSocket) newSocket.disconnect();
+    };
   }, []);
 
   useEffect(() => {
