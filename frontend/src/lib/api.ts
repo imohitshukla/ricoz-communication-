@@ -33,6 +33,11 @@ const wrapResponse = (data: any) => {
   return data;
 };
 
+const normalizePath = (url: string) => {
+  if (!url) return '/';
+  return url.startsWith('/') ? url : `/${url}`;
+};
+
 export const api = {
   get: async (url: string) => wrapResponse((await axiosInstance.get(normalizePath(url))).data),
   post: async (url: string, data?: any) => wrapResponse((await axiosInstance.post(normalizePath(url), data)).data),

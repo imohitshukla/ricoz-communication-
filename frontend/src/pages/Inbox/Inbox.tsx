@@ -77,7 +77,7 @@ export function Inbox() {
             ...c, 
             messages: [...c.messages, newMsg],
             lastMessage: attachmentText,
-            time: newMsg.time
+            time: newMsg.time || c.time
           } : c
         ));
       } catch (err) {

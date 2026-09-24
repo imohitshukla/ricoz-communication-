@@ -61,7 +61,7 @@ const AUTOPLAY_DURATION = 6000; // 6 seconds per tab
 export function FeatureShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (isPaused) return;

@@ -14,6 +14,7 @@ export function Signup() {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [error, setError] = useState('');
 
   // Social Auth Modals & Fields
   const [isGoogleOpen, setIsGoogleOpen] = useState(false);

@@ -74,6 +74,8 @@ function App() {
           <Route path="*" element={<div className="p-8 text-secondary">Module coming soon</div>} />
         </Route>
       </Route>
+      {/* Fallback for unmatched URLs */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
