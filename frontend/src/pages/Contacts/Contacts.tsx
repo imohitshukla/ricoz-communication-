@@ -17,7 +17,7 @@ export function Contacts() {
   const fetchContacts = async () => {
     try {
       setLoading(true);
-      const data = await api.get('/contacts');
+      const data = await api.get('/api/contacts');
       setContacts(data);
     } catch (err) {
       console.error(err);
@@ -29,7 +29,7 @@ export function Contacts() {
   const handleAddContact = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/contacts', {
+      await api.post('/api/contacts', {
         name: newContact.name,
         phoneNumber: newContact.phoneNumber,
         attributes: { email: newContact.email }

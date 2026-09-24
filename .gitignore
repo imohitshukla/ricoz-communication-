@@ -3,3 +3,6 @@ dist/
 build/
 .env
 .DS_Store
+*.db
+*.db-journal
+uploads/

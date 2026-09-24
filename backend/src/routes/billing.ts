@@ -21,9 +21,40 @@ const PLAN_PRICE_IDS: Record<string, string> = {
   'Advanced': process.env.STRIPE_PRICE_ADVANCED || 'price_placeholder_advanced',
 };
 
+// @route   GET /api/billing/subscription
+// @desc    Get current workspace subscription details
+router.get('/subscription', authenticate, async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { workspace: true }
+    });
+
+    if (!dbUser || !dbUser.workspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+
+    const ws = dbUser.workspace;
+    res.json({
+      planTier: ws.planTier || 'Free Trial',
+      status: ws.subscriptionStatus || 'trialing',
+      trialEndsAt: ws.trialEndsAt || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      currentPeriodEnd: ws.currentPeriodEnd || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      stripeCustomerId: ws.stripeCustomerId,
+      stripeSubscriptionId: ws.stripeSubscriptionId,
+      workspaceName: ws.name
+    });
+  } catch (error: any) {
+    console.error('Fetch subscription error:', error);
+    res.status(500).json({ error: 'Failed to fetch subscription info' });
+  }
+});
+
 // @route   POST /api/billing/create-checkout-session
 // @desc    Create a Stripe Checkout session for a specific plan
 router.post('/create-checkout-session', authenticate, async (req, res) => {
+
   const { planName } = req.body;
   
   try {

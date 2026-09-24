@@ -23,25 +23,13 @@ export function Billing() {
 
     const fetchSubscription = async () => {
       try {
-        // Ideally we would fetch the user's workspace subscription info here.
-        // For now we'll fetch from a generic mock or existing user route if we had one.
-        // Let's assume we can get it from /api/auth/me which we can add fields to later,
-        // or we just mock it for the UI demo based on the success message.
-        
-        // Mocking the fetch for now until we have a dedicated GET /api/billing/info
-        setTimeout(() => {
-          setSubscriptionInfo({
-            status: params.get('success') === 'true' ? 'active' : 'trialing',
-            planTier: params.get('mockPlan') || 'Free Trial',
-            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          });
-          setIsLoading(false);
-        }, 1000);
-        
+        setIsLoading(true);
+        const data = await api.get('/api/billing/subscription');
+        setSubscriptionInfo(data);
       } catch (err) {
         console.error('Failed to load billing info', err);
         setError('Failed to load billing information.');
+      } finally {
         setIsLoading(false);
       }
     };

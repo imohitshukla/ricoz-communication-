@@ -34,21 +34,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const response = await fetch('http://localhost:3000/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
+        const userData = await api.get('/api/auth/me');
+        if (userData && userData.id) {
           setUser(userData);
         } else {
-          // Token invalid or expired
           logout();
         }
       } catch (error) {
         console.error('Failed to fetch user:', error);
+        logout();
       } finally {
         setIsLoading(false);
       }

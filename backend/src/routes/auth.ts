@@ -48,7 +48,7 @@ router.post('/signup', async (req, res) => {
     });
 
     // Create token
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, workspaceId: user.workspaceId }, JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({
       token,
@@ -93,7 +93,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Create token
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, workspaceId: user.workspaceId }, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
       token,
@@ -137,4 +137,75 @@ router.get('/me', authenticate, async (req, res) => {
   }
 });
 
+// @route   POST /api/auth/social
+// @desc    OAuth / Social Sign Up & Sign In for Google, Shopify, Tally
+router.post('/social', async (req, res) => {
+
+  const { provider, email, name, storeUrl, companyName } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required for social authentication' });
+    }
+
+    const userName = name || email.split('@')[0];
+    const wsName = companyName || (storeUrl ? storeUrl.replace('.myshopify.com', '') : `${userName}'s Workspace`);
+
+    // Check if user already exists
+    let user = await prisma.user.findUnique({
+      where: { email },
+      include: { workspace: true }
+    });
+
+    let isNew = false;
+
+    if (!user) {
+      isNew = true;
+      // Create new workspace
+      const workspace = await prisma.workspace.create({
+        data: {
+          name: wsName,
+          planTier: 'Free Trial',
+          subscriptionStatus: 'trialing',
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+        }
+      });
+
+      // Create new user
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: userName,
+          role: 'Admin',
+          workspaceId: workspace.id
+        },
+        include: { workspace: true }
+      });
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { userId: user.id, workspaceId: user.workspaceId },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      isNew,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        workspaceId: user.workspaceId
+      }
+    });
+  } catch (error) {
+    console.error('Social auth error:', error);
+    res.status(500).json({ error: 'Failed to authenticate with ' + (provider || 'social provider') });
+  }
+});
+
 export default router;
+

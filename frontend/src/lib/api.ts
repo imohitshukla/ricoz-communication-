@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Base backend URL (e.g. http://localhost:3000 or production Render URL)
+const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_URL = rawBase.replace(/\/api\/?$/, '');
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -9,7 +11,7 @@ const axiosInstance = axios.create({
   },
 });
 
-// Add interceptor for auth token if needed in the future
+// Interceptor for auth token
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token && config.headers) {
@@ -18,9 +20,24 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-export const api = {
-  get: (url: string) => axiosInstance.get(url),
-  post: (url: string, data?: any) => axiosInstance.post(url, data),
-  put: (url: string, data?: any) => axiosInstance.put(url, data),
-  delete: (url: string) => axiosInstance.delete(url),
+const wrapResponse = (data: any) => {
+  if (data && typeof data === 'object' && !('data' in data)) {
+    try {
+      Object.defineProperty(data, 'data', {
+        get() { return this; },
+        enumerable: false,
+        configurable: true
+      });
+    } catch (_) {}
+  }
+  return data;
 };
+
+export const api = {
+  get: async (url: string) => wrapResponse((await axiosInstance.get(normalizePath(url))).data),
+  post: async (url: string, data?: any) => wrapResponse((await axiosInstance.post(normalizePath(url), data)).data),
+  put: async (url: string, data?: any) => wrapResponse((await axiosInstance.put(normalizePath(url), data)).data),
+  delete: async (url: string) => wrapResponse((await axiosInstance.delete(normalizePath(url))).data),
+};
+
+

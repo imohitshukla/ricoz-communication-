@@ -40,7 +40,54 @@ export function Inbox() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const activeChat = chats.find(c => c.id === activeChatId) || null;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeChat) return;
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result as string;
+        const res = await api.post('/api/media/upload', {
+          filename: file.name,
+          mimeType: file.type,
+          base64Data
+        });
+
+        const attachmentText = `📎 [Attachment: ${file.name}](${res.url})`;
+        await api.post(`/api/conversations/${activeChat.id}/messages`, {
+          text: attachmentText,
+          sender: 'agent'
+        });
+
+        const newMsg: Message = {
+          id: Math.random().toString(),
+          conversationId: activeChat.id,
+          text: attachmentText,
+          sender: 'agent',
+          timestamp: new Date().toISOString(),
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        setChats(prev => prev.map(c => 
+          c.id === activeChat.id ? { 
+            ...c, 
+            messages: [...c.messages, newMsg],
+            lastMessage: attachmentText,
+            time: newMsg.time
+          } : c
+        ));
+      } catch (err) {
+        console.error('File upload error:', err);
+        alert('Failed to upload file');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
 
   const fetchConversations = async () => {
     try {
@@ -276,9 +323,21 @@ export function Inbox() {
             {/* Composer */}
             <div className="p-4 bg-surface border-t border-border shrink-0">
               <div className="flex items-end space-x-2 bg-sunken border border-border rounded-xl p-2 focus-within:border-brand-primary/50 transition-colors">
-                <button className="p-2 text-secondary hover:text-primary shrink-0">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                  className="hidden" 
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 text-secondary hover:text-primary shrink-0 cursor-pointer"
+                  title="Attach file or image"
+                >
                   <Paperclip className="w-5 h-5" />
                 </button>
+
+
                 <textarea 
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}

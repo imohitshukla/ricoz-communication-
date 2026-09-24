@@ -16,8 +16,12 @@ export const io = new Server(httpServer, {
   }
 });
 
+import path from 'path';
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 import { contactsRouter } from './routes/contacts';
 import { conversationsRouter } from './routes/conversations';
@@ -26,6 +30,11 @@ import { rulesRouter } from './routes/rules';
 import { analyticsRouter } from './routes/analytics';
 import { aiRouter } from './routes/ai';
 import { billingRouter } from './routes/billing';
+import { whatsappRouter } from './routes/whatsapp';
+import { teamRouter } from './routes/team';
+import { commerceRouter } from './routes/commerce';
+import { voiceRouter } from './routes/voice';
+import { mediaRouter } from './routes/media';
 import authRoutes from './routes/auth';
 import { PrismaClient } from '@prisma/client';
 
@@ -44,6 +53,13 @@ app.use('/api/rules', rulesRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/billing', billingRouter);
+app.use('/api/whatsapp', whatsappRouter);
+app.use('/api/team', teamRouter);
+app.use('/api/commerce', commerceRouter);
+app.use('/api/voice', voiceRouter);
+app.use('/api/media', mediaRouter);
+
+
 
 // Setup mock channels to emit random messages
 setupMockChannels(io);

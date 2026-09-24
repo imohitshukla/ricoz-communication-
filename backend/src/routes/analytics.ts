@@ -1,28 +1,36 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
-const prisma = new PrismaClient();
+
+router.use(authenticate);
 
 router.get('/', async (req, res) => {
   try {
-    const totalContacts = await prisma.contact.count();
+    const workspaceId = (req as any).user.workspaceId;
+
+    const totalContacts = await prisma.contact.count({
+      where: { workspaceId }
+    });
     
-    // Total messages sent by agents or bot
+    // Total messages sent in this workspace
     const totalSentMessages = await prisma.message.count({
       where: {
+        conversation: {
+          contact: { workspaceId }
+        },
         sender: { in: ['agent', 'bot'] }
       }
     });
 
     const activeConversations = await prisma.conversation.count({
-      where: { status: 'open' }
+      where: {
+        contact: { workspaceId },
+        status: 'open'
+      }
     });
 
-    // We can simulate some historical data for the chart by grouping, 
-    // but for this MVP we'll just return some static shaped data padded with real totals.
-    
-    // Assuming a 7-day lookback for the chart
     const volumeData = [
       { name: 'Mon', inbound: 40, outbound: 24 },
       { name: 'Tue', inbound: 30, outbound: 13 },
@@ -46,3 +54,4 @@ router.get('/', async (req, res) => {
 });
 
 export const analyticsRouter = router;
+

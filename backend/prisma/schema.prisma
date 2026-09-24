@@ -37,6 +37,12 @@ model Workspace {
   contacts             Contact[]
   tags                 Tag[]
   aiAgentConfig        AIAgentConfig?
+  products             Product[]
+  orders               Order[]
+  slaConfig            SLAConfig?
+  teamInvitations      TeamInvitation[]
+  callLogs             CallLog[]
+  ivrConfig            IVRConfig?
 }
 
 model User {
@@ -105,3 +111,73 @@ model AutoReplyRule {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Product {
+  id          String    @id @default(uuid())
+  name        String
+  price       Float
+  stock       Int       @default(0)
+  status      String    @default("Active") // Active, Out of Stock, Draft
+  image       String?   @default("bg-brand-primary")
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Order {
+  id          String    @id @default(uuid())
+  orderNumber String    @unique
+  amount      Float
+  status      String    @default("Pending") // Pending, Paid, Cancelled
+  contactId   String?
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model SLAConfig {
+  id                  String    @id @default(uuid())
+  workspaceId         String    @unique
+  workspace           Workspace @relation(fields: [workspaceId], references: [id])
+  firstResponseTarget String    @default("Within 15 minutes")
+  resolutionTarget    String    @default("Within 2 hours")
+  workingHours        String    @default("Monday - Friday, 9:00 AM - 6:00 PM")
+  updatedAt           DateTime  @updatedAt
+}
+
+model TeamInvitation {
+  id          String    @id @default(uuid())
+  email       String
+  role        String    @default("Agent")
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  token       String    @unique @default(uuid())
+  status      String    @default("Pending") // Pending, Accepted, Expired
+  createdAt   DateTime  @default(now())
+}
+
+model CallLog {
+  id          String    @id @default(uuid())
+  contactName String
+  phoneNumber String
+  duration    String
+  sentiment   String    @default("Neutral") // Positive, Neutral, Negative
+  type        String    @default("incoming") // incoming, outgoing, missed
+  transcript  String?
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  timestamp   DateTime  @default(now())
+}
+
+model IVRConfig {
+  id             String    @id @default(uuid())
+  workspaceId    String    @unique
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  welcomeMessage String    @default("Thank you for calling Ricoz. How may we assist you today?")
+  aiPrompt       String    @default("You are a friendly AI receptionist for Ricoz. Answer common inquiries and transfer to support if requested.")
+  voiceGender    String    @default("female")
+  fallbackNumber String?
+  updatedAt      DateTime  @updatedAt
+}
+

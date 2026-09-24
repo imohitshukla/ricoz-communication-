@@ -1,20 +1,19 @@
 import { Router } from 'express';
 import { prisma } from '../db';
+import { authenticate } from '../middleware/auth';
 
 export const contactsRouter = Router();
 
-// GET /api/contacts - Fetch all contacts for a workspace
+// Apply auth to all contacts routes
+contactsRouter.use(authenticate);
+
+// GET /api/contacts - Fetch all contacts for the workspace
 contactsRouter.get('/', async (req, res) => {
   try {
-    // For now, hardcode the first workspace since auth isn't fully implemented
-    const workspace = await prisma.workspace.findFirst();
-    
-    if (!workspace) {
-      return res.status(404).json({ error: 'No workspace found. Please run seed script.' });
-    }
+    const workspaceId = (req as any).user.workspaceId;
 
     const contacts = await prisma.contact.findMany({
-      where: { workspaceId: workspace.id },
+      where: { workspaceId },
       include: { tags: true },
       orderBy: { updatedAt: 'desc' }
     });
@@ -31,25 +30,32 @@ contactsRouter.get('/', async (req, res) => {
   }
 });
 
-// POST /api/contacts - Create a new contact
+// POST /api/contacts - Create a new contact in the workspace
 contactsRouter.post('/', async (req, res) => {
   try {
+    const workspaceId = (req as any).user.workspaceId;
     const { phoneNumber, name, attributes } = req.body;
-    
-    // For now, hardcode the first workspace
-    let workspace = await prisma.workspace.findFirst();
-    if (!workspace) {
-      workspace = await prisma.workspace.create({
-        data: { name: 'Default Workspace' }
-      });
+
+    if (!phoneNumber) {
+      return res.status(400).json({ error: 'Phone number is required' });
     }
 
-    const contact = await prisma.contact.create({
-      data: {
+    const contact = await prisma.contact.upsert({
+      where: {
+        workspaceId_phoneNumber: {
+          workspaceId,
+          phoneNumber
+        }
+      },
+      update: {
+        name: name || undefined,
+        attributes: JSON.stringify(attributes || {})
+      },
+      create: {
         phoneNumber,
         name,
         attributes: JSON.stringify(attributes || {}),
-        workspaceId: workspace.id
+        workspaceId
       }
     });
 
@@ -59,3 +65,48 @@ contactsRouter.post('/', async (req, res) => {
     res.status(500).json({ error: 'Failed to create contact' });
   }
 });
+
+// PUT /api/contacts/:id - Update contact
+contactsRouter.put('/:id', async (req, res) => {
+  try {
+    const workspaceId = (req as any).user.workspaceId;
+    const { id } = req.params;
+    const { name, phoneNumber, attributes } = req.body;
+
+    const contact = await prisma.contact.update({
+      where: { id, workspaceId },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(phoneNumber !== undefined && { phoneNumber }),
+        ...(attributes !== undefined && { attributes: JSON.stringify(attributes) })
+      }
+    });
+
+    res.json(contact);
+  } catch (error) {
+    console.error('Error updating contact:', error);
+    res.status(500).json({ error: 'Failed to update contact' });
+  }
+});
+
+// DELETE /api/contacts/:id - Delete contact
+contactsRouter.delete('/:id', async (req, res) => {
+  try {
+    const workspaceId = (req as any).user.workspaceId;
+    const { id } = req.params;
+
+    // Delete associated messages and conversations first
+    const convs = await prisma.conversation.findMany({ where: { contactId: id } });
+    for (const conv of convs) {
+      await prisma.message.deleteMany({ where: { conversationId: conv.id } });
+    }
+    await prisma.conversation.deleteMany({ where: { contactId: id } });
+    await prisma.contact.delete({ where: { id, workspaceId } });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting contact:', error);
+    res.status(500).json({ error: 'Failed to delete contact' });
+  }
+});
+
