@@ -78,7 +78,7 @@ export function Login() {
         login(demoToken, demoUser);
         navigate('/dashboard/overview');
       } else {
-        setError(err.response?.data?.error || err.message || 'Invalid credentials. You can use admin@ricoz.com / admin123 to log in as Admin.');
+        setError(err.response?.data?.error || 'Invalid email or password. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -145,27 +145,6 @@ export function Login() {
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* HR / Reviewer Demo Credentials Banner */}
-              <div className="bg-[#f0fbf6] border border-[#b2e5ce] rounded-lg p-3 text-xs text-gray-800 shadow-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <span className="font-bold text-[#1e4c3b] block">🔑 Demo Admin Login:</span>
-                    <div>Email: <span className="font-mono font-bold text-gray-900">admin@ricoz.com</span></div>
-                    <div>Password: <span className="font-mono font-bold text-gray-900">admin123</span></div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('admin@ricoz.com');
-                      setPassword('admin123');
-                    }}
-                    className="px-3 py-1.5 bg-[#00a688] hover:bg-[#008f75] text-white rounded font-bold text-xs shrink-0 cursor-pointer shadow-xs transition-colors"
-                  >
-                    Auto-Fill
-                  </button>
-                </div>
-              </div>
-
               {error && (
                 <div className="bg-red-50 text-red-600 p-3 rounded text-sm font-medium border border-red-200">
                   {error}
