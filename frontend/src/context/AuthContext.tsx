@@ -22,7 +22,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
@@ -38,12 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = await api.get('/api/auth/me');
         if (userData && userData.id) {
           setUser(userData);
-        } else {
-          logout();
+          localStorage.setItem('user', JSON.stringify(userData));
         }
       } catch (error) {
-        console.error('Failed to fetch user:', error);
-        logout();
+        console.warn('Backend server offline or unreachable, retaining active session:', error);
       } finally {
         setIsLoading(false);
       }
@@ -54,13 +59,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (newToken: string, userData: User) => {
     localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
     setUser(userData);
-    navigate('/dashboard');
+    navigate('/dashboard/overview');
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
     navigate('/login');
