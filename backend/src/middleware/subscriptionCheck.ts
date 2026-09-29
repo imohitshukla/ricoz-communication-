@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 
-const prisma = new PrismaClient();
 
 export const requireActiveSubscription = async (req: Request, res: Response, next: NextFunction) => {
   const user = (req as any).user;

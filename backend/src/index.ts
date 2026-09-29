@@ -1,4 +1,5 @@
 import express from 'express';
+import { prisma } from './db';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
@@ -59,9 +60,7 @@ import { commerceRouter } from './routes/commerce';
 import { voiceRouter } from './routes/voice';
 import { mediaRouter } from './routes/media';
 import authRoutes from './routes/auth';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
 
 // Basic health check endpoint
 app.get('/health', (req, res) => {

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { prisma } from './db';
 
 // Initialize the Google GenAI client.
 // It will automatically pick up GEMINI_API_KEY from process.env
@@ -28,8 +29,7 @@ export async function generateAgentResponse(
 
   try {
     const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-    
+        
     let basePrompt = `You are a helpful, professional, and friendly customer support AI agent for a company called "Ricoz Communication".
 Your goal is to assist customers quickly and accurately. Keep your responses concise (1-3 sentences) since they are sent via WhatsApp.`;
     

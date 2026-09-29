@@ -1,8 +1,7 @@
 import { Server } from 'socket.io';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './db';
 import { generateAgentResponse } from './aiService';
 
-const prisma = new PrismaClient();
 
 const messages = [
   "Hello, I need help with my order.",

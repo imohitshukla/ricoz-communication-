@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 import { authenticate } from '../middleware/auth';
 import Stripe from 'stripe';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Initialize Stripe with a placeholder or env variable
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
