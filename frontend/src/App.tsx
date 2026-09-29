@@ -14,7 +14,12 @@ import { Integrations } from './pages/Integrations/Integrations';
 import { Settings } from './pages/Settings/Settings';
 import { Billing } from './pages/Settings/Billing';
 import { WhatsAppAIAgent } from './pages/Automation/WhatsAppAIAgent';
-import { PremiumFeature } from './components/ui/PremiumFeature';
+import { BasicAutomations } from './pages/Automation/BasicAutomations';
+import { CustomAutoReply } from './pages/Automation/CustomAutoReply';
+import { Workflows } from './pages/Automation/Workflows';
+import { AIIntentMatching } from './pages/Automation/AIIntentMatching';
+import { InstagramQuickflows } from './pages/Automation/InstagramQuickflows';
+import { VoiceAI } from './pages/Automation/VoiceAI';
 
 import { PublicLayout } from './components/layout/PublicLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
@@ -34,6 +39,16 @@ import { SoloPage } from '@/pages/Public/Solo';
 import { PublicIntegrations } from '@/pages/Public/PublicIntegrations';
 import { PartnerProgram } from '@/pages/Public/PartnerProgram';
 import { LiveDemo } from '@/pages/Public/LiveDemo';
+
+const ComingSoon = ({ title }: { title: string }) => (
+  <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#f8fcf9]">
+    <div className="w-16 h-16 bg-[#f0fbf6] border border-[#d2efe0] rounded-2xl flex items-center justify-center mb-4">
+      <span className="text-3xl">🚀</span>
+    </div>
+    <h2 className="text-xl font-bold text-gray-900 mb-2">{title}</h2>
+    <p className="text-gray-500 text-sm text-center max-w-xs">This module is being built. Check back soon or contact support for early access.</p>
+  </div>
+);
 
 function App() {
   return (
@@ -64,16 +79,15 @@ function App() {
           <Route path="campaigns" element={<Campaigns />} />
           <Route path="flow-builder" element={<JourneyBuilder />} />
           <Route path="agents" element={<Agents />} />
-          <Route path="automation/basic" element={<PremiumFeature title="Basic Automations" description="Set up simple, rule-based automated replies to instantly engage your leads without writing a single line of code." />} />
-          <Route path="automation/custom" element={<PremiumFeature title="Custom Auto Reply" description="Create highly specific automated responses based on advanced keyword matching and customer intent." />} />
-          <Route path="automation/workflows" element={<PremiumFeature title="Advanced Workflows" description="Build multi-step, visual customer journeys and drip campaigns tailored for WhatsApp." />} />
-          <Route path="automation/intent" element={<PremiumFeature title="AI Intent Matching" description="Automatically route and classify incoming messages using our advanced Natural Language Processing engine." />} />
+          <Route path="automation/basic" element={<BasicAutomations />} />
+          <Route path="automation/custom" element={<CustomAutoReply />} />
+          <Route path="automation/workflows" element={<Workflows />} />
+          <Route path="automation/intent" element={<AIIntentMatching />} />
           <Route path="automation/ai-agent" element={<WhatsAppAIAgent />} />
-          <Route path="automation/ig-quickflows" element={<PremiumFeature title="Instagram Quickflows" description="Seamlessly automate your Instagram DMs to convert followers into paying customers on autopilot." />} />
-          <Route path="automation/voice" element={<PremiumFeature title="Voice AI - Inbound Calls" description="Handle incoming phone calls with an advanced voice-based AI agent that sounds completely human." />} />
-          <Route path="utilities/forms" element={<PremiumFeature title="WhatsApp Forms" description="Collect customer data directly within WhatsApp using native, interactive forms." />} />
-          <Route path="utilities/list" element={<PremiumFeature title="Interactive Lists" description="Design and send dynamic interactive list messages for intuitive product catalogs and menus." />} />
-          
+          <Route path="automation/ig-quickflows" element={<InstagramQuickflows />} />
+          <Route path="automation/voice" element={<VoiceAI />} />
+          <Route path="utilities/forms" element={<ComingSoon title="WhatsApp Forms" />} />
+          <Route path="utilities/list" element={<ComingSoon title="Interactive Lists" />} />
           <Route path="commerce" element={<Commerce />} />
           <Route path="voice" element={<Voice />} />
           <Route path="analytics" element={<Analytics />} />
@@ -81,10 +95,9 @@ function App() {
           <Route path="integrations" element={<Integrations />} />
           <Route path="settings" element={<Settings />} />
           <Route path="billing" element={<Billing />} />
-          <Route path="*" element={<PremiumFeature title="Module Coming Soon" description="We are working hard to bring this feature to you. Stay tuned for our next major release!" />} />
+          <Route path="*" element={<ComingSoon title="Coming Soon" />} />
         </Route>
       </Route>
-      {/* Fallback for unmatched URLs */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -13,9 +13,7 @@ import {
   Puzzle,
   LayoutTemplate,
   ChevronDown,
-  ChevronRight,
   Menu,
-  GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -45,7 +43,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-20 scrollbar-hide">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 scrollbar-hide">
         
         <div className="mb-4">
           <NavLink
@@ -248,19 +246,6 @@ export function Sidebar() {
 
         </div>
       </nav>
-
-      {/* Navigation Tour floating widget */}
-      <div className="absolute bottom-4 left-4 right-4 bg-[#1e4c3b] rounded-lg p-3 text-white shadow-lg">
-        <div className="flex items-center space-x-2 mb-2">
-          <div className="bg-white/20 p-1 rounded">
-            <GraduationCap className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-bold">Need a Quick Navigation Tour?</span>
-        </div>
-        <button className="w-full bg-white text-[#1e4c3b] text-xs font-bold py-2 rounded transition-colors hover:bg-gray-100">
-          Start Tour
-        </button>
-      </div>
 
     </aside>
   );

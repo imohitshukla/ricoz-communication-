@@ -43,18 +43,18 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Toggle rule active status
-router.put('/:id/toggle', async (req, res) => {
+// Update a rule (full update)
+router.put('/:id', async (req, res) => {
   try {
-    const { isActive } = req.body;
+    const { keyword, replyText, isActive } = req.body;
     const rule = await prisma.autoReplyRule.update({
       where: { id: req.params.id },
-      data: { isActive }
+      data: { keyword, replyText, isActive }
     });
     res.json(rule);
   } catch (error) {
-    console.error('Error toggling rule:', error);
-    res.status(500).json({ error: 'Failed to toggle rule' });
+    console.error('Error updating rule:', error);
+    res.status(500).json({ error: 'Failed to update rule' });
   }
 });
 
