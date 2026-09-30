@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../db';
 import { authenticate } from '../middleware/auth';
+import { sendTeamInviteEmail } from '../services/emailService';
 
 export const teamRouter = Router();
 
@@ -57,15 +58,16 @@ teamRouter.post('/invite', async (req, res) => {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
 
-    // Create user with default initial password or invite record
+    // Create user with a known plain-text temp password (sent via email)
     const bcrypt = require('bcryptjs');
-    const tempPassword = await bcrypt.hash('Welcome123!', 10);
+    const plainTempPassword = 'Welcome@Ricoz1!';
+    const hashedPassword = await bcrypt.hash(plainTempPassword, 10);
 
     const newUser = await prisma.user.create({
       data: {
         email,
         name: name || email.split('@')[0],
-        password: tempPassword,
+        password: hashedPassword,
         role: role || 'Agent',
         workspaceId
       },
@@ -77,9 +79,25 @@ teamRouter.post('/invite', async (req, res) => {
       }
     });
 
+    // Fetch workspace name for the email
+    const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
+    const inviter = (req as any).user;
+
+    // Send invite email with credentials
+    const emailResult = await sendTeamInviteEmail({
+      toEmail: email,
+      toName: newUser.name,
+      inviterName: inviter?.name || 'Your Admin',
+      workspaceName: workspace?.name || 'Ricoz',
+      tempPassword: plainTempPassword,
+    });
+
     res.status(201).json({
       success: true,
-      message: 'Team member added successfully',
+      message: emailResult.success
+        ? 'Team member added & invite email sent'
+        : 'Team member added (email delivery failed — check SMTP config)',
+      emailSent: emailResult.success,
       user: {
         ...newUser,
         status: 'Online',

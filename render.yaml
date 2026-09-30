@@ -17,3 +17,15 @@ services:
         sync: false # User must provide this manually from Railway
       - key: FRONTEND_URL
         value: https://ricoz-communication-74lg.vercel.app # Your live Vercel URL
+      # ── SMTP Email ─────────────────────────────────────────────────
+      - key: SMTP_HOST
+        sync: false # e.g. sandbox.smtp.mailtrap.io  OR  smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false # Your SMTP username / Gmail address
+      - key: SMTP_PASS
+        sync: false # Your SMTP password / Gmail App Password
+      - key: SMTP_FROM
+        value: '"Ricoz Communication" <no-reply@ricoz.io>'
+

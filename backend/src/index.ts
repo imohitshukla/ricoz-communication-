@@ -60,11 +60,18 @@ import { commerceRouter } from './routes/commerce';
 import { voiceRouter } from './routes/voice';
 import { mediaRouter } from './routes/media';
 import authRoutes from './routes/auth';
+import { testSmtpConnection } from './services/emailService';
 
 
 // Basic health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ricoz Communication API is running' });
+});
+
+// SMTP connection test endpoint  — GET /api/test-smtp
+app.get('/api/test-smtp', async (_req, res) => {
+  const result = await testSmtpConnection();
+  res.status(result.success ? 200 : 500).json(result);
 });
 
 app.use('/api/auth', authRoutes);
