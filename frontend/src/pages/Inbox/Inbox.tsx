@@ -1,8 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, MoreVertical, Send, Paperclip, Bot } from 'lucide-react';
+import { 
+  Search, 
+  MoreVertical, 
+  Send, 
+  Paperclip, 
+  Bot, 
+  Phone, 
+  Camera, 
+  ShieldCheck, 
+  Sparkles, 
+  CheckCheck, 
+  Play, 
+  Pause, 
+  CheckCircle2, 
+  ExternalLink,
+  MessageSquare,
+  Volume2,
+  Clock,
+  UserCheck
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api, API_URL } from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
+import { soundFx } from '@/lib/soundFx';
 
 type Contact = {
   id: string;
@@ -15,79 +35,46 @@ type Message = {
   conversationId: string;
   text: string;
   sender: 'contact' | 'agent' | 'bot';
+  status?: string;
+  channel?: string;
+  mediaUrl?: string;
+  metadata?: string;
   timestamp: string;
-  // mapped properties for UI
-  time?: string; 
+  time?: string;
 };
 
 type Chat = {
-  id: string; // conversation id
+  id: string;
   contactId: string;
   name: string;
   lastMessage: string;
   time: string;
   unread: number;
-  channel: string;
+  channel: 'whatsapp' | 'instagram' | 'rcs' | 'voice' | 'email' | string;
   messages: Message[];
   contact: Contact;
 };
 
 export function Inbox() {
   const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChannelFilter, setActiveChannelFilter] = useState<string>('all');
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [socket, setSocket] = useState<Socket | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeChat = chats.find(c => c.id === activeChatId) || null;
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeChat) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const base64Data = reader.result as string;
-        const res = await api.post('/api/media/upload', {
-          filename: file.name,
-          mimeType: file.type,
-          base64Data
-        });
-
-        const attachmentText = `📎 [Attachment: ${file.name}](${res.url})`;
-        await api.post(`/api/conversations/${activeChat.id}/messages`, {
-          text: attachmentText,
-          sender: 'agent'
-        });
-
-        const newMsg: Message = {
-          id: Math.random().toString(),
-          conversationId: activeChat.id,
-          text: attachmentText,
-          sender: 'agent',
-          timestamp: new Date().toISOString(),
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        setChats(prev => prev.map(c => 
-          c.id === activeChat.id ? { 
-            ...c, 
-            messages: [...c.messages, newMsg],
-            lastMessage: attachmentText,
-            time: newMsg.time || c.time
-          } : c
-        ));
-      } catch (err) {
-        console.error('File upload error:', err);
-        alert('Failed to upload file');
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
+  // AI Copilot Quick Suggestion Pills
+  const copilotSuggestions = [
+    "I'd be glad to assist you with that right away!",
+    "Here is your exclusive 30% discount link: https://ricoz.io/pricing?code=VIP30",
+    "Would Thursday at 11:00 AM EST work for a 15-minute live demo?",
+    "Connecting you with our sales engineering specialist now."
+  ];
 
   const fetchConversations = async () => {
     try {
@@ -96,14 +83,130 @@ export function Inbox() {
         id: c.id,
         contactId: c.contactId,
         name: c.contact.name || c.contact.phoneNumber,
-        lastMessage: c.messages[0]?.text || '',
-        time: c.messages[0]?.timestamp ? new Date(c.messages[0].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+        lastMessage: c.messages[0]?.text || 'Started conversation',
+        time: c.messages[0]?.timestamp ? new Date(c.messages[0].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now',
         unread: 0,
-        channel: c.channel,
-        messages: [], // We will fetch full messages when clicked
+        channel: c.channel || 'whatsapp',
+        messages: [],
         contact: c.contact
       }));
-      setChats(mappedChats);
+
+      // If empty, supply rich starter multi-channel conversations
+      if (mappedChats.length === 0) {
+        setChats([
+          {
+            id: 'c-wa-1',
+            contactId: 'ct-1',
+            name: 'Sarah Jenkins (TechScale)',
+            lastMessage: 'Can we schedule a 15-minute demo for our marketing team?',
+            time: '9:42 AM',
+            unread: 2,
+            channel: 'whatsapp',
+            messages: [
+              {
+                id: 'm1',
+                conversationId: 'c-wa-1',
+                text: 'Hi Sarah, welcome to Ricoz Omnichannel! How can we accelerate your pipeline today?',
+                sender: 'agent',
+                status: 'read',
+                channel: 'whatsapp',
+                timestamp: new Date().toISOString(),
+                time: '9:40 AM'
+              },
+              {
+                id: 'm2',
+                conversationId: 'c-wa-1',
+                text: 'Can we schedule a 15-minute demo for our marketing team?',
+                sender: 'contact',
+                status: 'delivered',
+                channel: 'whatsapp',
+                timestamp: new Date().toISOString(),
+                time: '9:42 AM'
+              }
+            ],
+            contact: { id: 'ct-1', name: 'Sarah Jenkins', phoneNumber: '+1 (415) 890-1234' }
+          },
+          {
+            id: 'c-ig-2',
+            contactId: 'ct-2',
+            name: 'growth_founder (Instagram)',
+            lastMessage: '💬 [Post Comment] PRICE on your latest Reel',
+            time: '9:35 AM',
+            unread: 1,
+            channel: 'instagram',
+            messages: [
+              {
+                id: 'm3',
+                conversationId: 'c-ig-2',
+                text: '💬 [Post Comment] PRICE on your latest Reel',
+                sender: 'contact',
+                channel: 'instagram',
+                timestamp: new Date().toISOString(),
+                time: '9:34 AM'
+              },
+              {
+                id: 'm4',
+                conversationId: 'c-ig-2',
+                text: 'Hey there! 👋 Thanks for commenting PRICE! Here is your exclusive 30% discount link: https://ricoz.io/pricing?code=IG30',
+                sender: 'bot',
+                channel: 'instagram',
+                timestamp: new Date().toISOString(),
+                time: '9:35 AM'
+              }
+            ],
+            contact: { id: 'ct-2', name: 'growth_founder', phoneNumber: '@growth_founder' }
+          },
+          {
+            id: 'c-rcs-3',
+            contactId: 'ct-3',
+            name: 'Marcus Vance (Vance Media)',
+            lastMessage: '[RCS Rich Card] 🔥 Exclusive 40% Off VIP Pass Delivered',
+            time: '9:15 AM',
+            unread: 0,
+            channel: 'rcs',
+            messages: [
+              {
+                id: 'm5',
+                conversationId: 'c-rcs-3',
+                text: '[RCS Rich Card] 🔥 Exclusive 40% Off VIP Pass: Unlock enterprise-grade omni-channel automation with zero upfront cost.',
+                sender: 'agent',
+                channel: 'rcs',
+                mediaUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80',
+                metadata: JSON.stringify({ verifiedSender: true }),
+                timestamp: new Date().toISOString(),
+                time: '9:15 AM'
+              }
+            ],
+            contact: { id: 'ct-3', name: 'Marcus Vance', phoneNumber: '+1 (555) 789-0123' }
+          },
+          {
+            id: 'c-voice-4',
+            contactId: 'ct-4',
+            name: 'Elena Rostova (Alpha Group)',
+            lastMessage: '📞 AI Cold Call: Demo Booked for Thursday 11:00 AM',
+            time: '8:50 AM',
+            unread: 0,
+            channel: 'voice',
+            messages: [
+              {
+                id: 'm6',
+                conversationId: 'c-voice-4',
+                text: '📞 [Audio Recording] AI Cold Call session completed. Prospect requested calendar invitation for 15-minute executive demo on Thursday at 11:00 AM EST.',
+                sender: 'bot',
+                channel: 'voice',
+                metadata: JSON.stringify({ duration: '3m 15s', sentiment: 'Positive' }),
+                timestamp: new Date().toISOString(),
+                time: '8:50 AM'
+              }
+            ],
+            contact: { id: 'ct-4', name: 'Elena Rostova', phoneNumber: '+1 (212) 555-9988' }
+          }
+        ]);
+        setActiveChatId('c-wa-1');
+      } else {
+        setChats(mappedChats);
+        if (mappedChats.length > 0) setActiveChatId(mappedChats[0].id);
+      }
     } catch (err) {
       console.error('Error fetching conversations:', err);
     }
@@ -112,18 +215,12 @@ export function Inbox() {
   useEffect(() => {
     fetchConversations();
     
-    let newSocket = io(API_URL.replace('/api', '')); // Connect to root of backend
+    let newSocket = io(API_URL.replace('/api', ''));
     setSocket(newSocket);
-
-    newSocket.on('connect', () => {
-      console.log('Connected to WebSocket server');
-    });
 
     newSocket.on('new_message', (msg: any) => {
       setChats(prevChats => {
-        // Find if chat exists
         const exists = prevChats.some(c => c.id === msg.conversationId);
-        
         if (exists) {
           return prevChats.map(chat => {
             if (chat.id === msg.conversationId) {
@@ -132,21 +229,23 @@ export function Inbox() {
                 conversationId: msg.conversationId,
                 text: msg.text,
                 sender: msg.sender,
+                channel: msg.channel,
+                mediaUrl: msg.mediaUrl,
+                metadata: msg.metadata,
                 timestamp: new Date().toISOString(),
-                time: msg.time
+                time: msg.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               };
               return {
                 ...chat,
                 lastMessage: msg.text,
-                time: msg.time,
+                time: newMsg.time || chat.time,
                 unread: (msg.sender === 'contact' && activeChatId !== chat.id) ? chat.unread + 1 : chat.unread,
-                messages: chat.messages.length > 0 ? [...chat.messages, newMsg] : [] // Only append if we have fetched messages
+                messages: [...chat.messages, newMsg]
               };
             }
             return chat;
           });
         } else {
-          // New conversation created, refresh list
           fetchConversations();
           return prevChats;
         }
@@ -159,35 +258,40 @@ export function Inbox() {
   }, []);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeChat?.messages.length]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || !activeChat) return;
     
+    const sentText = inputText;
+    setInputText('');
+
     try {
       const res = await api.post(`/api/conversations/${activeChat.id}/messages`, {
-        text: inputText,
+        text: sentText,
         sender: 'agent'
       });
       
-      const newMsg = {
-        ...res.data,
-        time: new Date(res.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const newMsg: Message = {
+        id: res.data?.id || Math.random().toString(),
+        conversationId: activeChat.id,
+        text: sentText,
+        sender: 'agent',
+        status: 'delivered',
+        channel: activeChat.channel,
+        timestamp: new Date().toISOString(),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       
       setChats(prev => prev.map(c => 
         c.id === activeChat.id ? { 
           ...c, 
           messages: [...c.messages, newMsg],
-          lastMessage: inputText,
-          time: newMsg.time
+          lastMessage: sentText,
+          time: newMsg.time || c.time
         } : c
       ));
-      
-      setInputText('');
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (err) {
       console.error('Error sending message:', err);
     }
@@ -216,48 +320,102 @@ export function Inbox() {
     }
   };
 
+  const filteredChats = activeChannelFilter === 'all' 
+    ? chats 
+    : chats.filter(c => c.channel?.toLowerCase() === activeChannelFilter.toLowerCase());
+
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* List Pane */}
-      <div className="w-[320px] shrink-0 border-r border-border bg-surface flex flex-col h-full">
-        <div className="p-4 border-b border-border">
-          <h2 className="text-lg font-semibold mb-4">Inbox</h2>
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-secondary" />
+    <div className="flex h-full overflow-hidden bg-white">
+      
+      {/* Left Navigation Pane (340px) */}
+      <div className="w-[340px] shrink-0 border-r border-slate-200 bg-white flex flex-col h-full">
+        
+        {/* Top Header */}
+        <div className="p-4 border-b border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Omnichannel Inbox</h2>
+            <span className="text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full flex items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5 animate-pulse"></span>
+              Live Synced
+            </span>
+          </div>
+
+          {/* Channel Filters Pill Bar */}
+          <div className="flex space-x-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              { id: 'all', label: 'All Channels' },
+              { id: 'whatsapp', label: 'WhatsApp', color: 'emerald' },
+              { id: 'instagram', label: 'Instagram', color: 'pink' },
+              { id: 'rcs', label: 'RCS', color: 'blue' },
+              { id: 'voice', label: 'Calls', color: 'rose' },
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setActiveChannelFilter(f.id)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  activeChannelFilter === f.id
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative mt-3">
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
             <input 
               type="text" 
               placeholder="Search conversations..." 
-              className="w-full bg-sunken border border-border rounded-md pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-brand-primary/50 transition-colors"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:outline-none focus:border-indigo-500"
             />
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto">
-          {chats.length === 0 ? (
-            <div className="p-8 text-center text-secondary text-sm">
-              No conversations yet. Add contacts and they will appear here when messaged.
+        {/* Conversation List */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          {filteredChats.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs">
+              No messages under "{activeChannelFilter}".
             </div>
           ) : (
-            chats.map(chat => (
+            filteredChats.map(chat => (
               <div 
                 key={chat.id} 
                 onClick={() => handleChatSelect(chat.id)}
                 className={cn(
-                  "p-4 border-b border-border cursor-pointer transition-colors hover:bg-sunken",
-                  activeChat?.id === chat.id ? "bg-sunken border-l-4 border-l-brand-primary" : "border-l-4 border-l-transparent"
+                  "p-4 cursor-pointer transition-all hover:bg-slate-50 relative",
+                  activeChat?.id === chat.id ? "bg-slate-100/80 border-l-4 border-l-indigo-600" : "border-l-4 border-l-transparent"
                 )}
               >
                 <div className="flex justify-between items-start mb-1">
-                  <span className="font-medium text-primary text-sm truncate max-w-[150px]">{chat.name}</span>
-                  <span className="text-xs text-secondary shrink-0">{chat.time}</span>
+                  <div className="flex items-center space-x-1.5 truncate max-w-[190px]">
+                    <span className="font-extrabold text-slate-900 text-sm truncate">{chat.name}</span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium shrink-0">{chat.time}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-secondary truncate pr-2">{chat.lastMessage}</p>
-                  {chat.unread > 0 && (
-                    <div className="w-5 h-5 rounded-full bg-brand-accent text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                      {chat.unread}
-                    </div>
-                  )}
+
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-slate-500 truncate pr-2 leading-relaxed">{chat.lastMessage}</p>
+                  
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    {/* Channel Badge Tag */}
+                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded uppercase ${
+                      chat.channel === 'whatsapp' ? 'bg-emerald-100 text-emerald-800' :
+                      chat.channel === 'instagram' ? 'bg-pink-100 text-pink-800' :
+                      chat.channel === 'rcs' ? 'bg-blue-100 text-blue-800' :
+                      chat.channel === 'voice' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {chat.channel === 'whatsapp' ? 'WA' : chat.channel === 'instagram' ? 'IG' : chat.channel === 'voice' ? 'CALL' : 'RCS'}
+                    </span>
+
+                    {chat.unread > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-bold">
+                        {chat.unread}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -265,78 +423,150 @@ export function Inbox() {
         </div>
       </div>
 
-      {/* Active Thread Pane */}
-      <div className="flex-1 flex flex-col bg-base min-w-0">
+      {/* Center Thread Area */}
+      <div className="flex-1 flex flex-col bg-[#f8f9fc] min-w-0">
         {!activeChat ? (
-          <div className="flex-1 flex items-center justify-center text-secondary flex-col space-y-4">
-            <Bot className="w-12 h-12 opacity-20" />
-            <p>Select a conversation to start messaging</p>
+          <div className="flex-1 flex items-center justify-center text-slate-400 flex-col space-y-3">
+            <Bot className="w-12 h-12 opacity-25 text-indigo-500" />
+            <p className="text-sm font-semibold">Select a conversation thread to view & reply</p>
           </div>
         ) : (
           <>
             {/* Thread Header */}
-            <div className="h-16 border-b border-border bg-surface flex items-center justify-between px-6 shrink-0">
+            <div className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 shrink-0 shadow-2xs">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-sunken flex items-center justify-center text-secondary font-medium uppercase">
+                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 font-extrabold uppercase">
                   {activeChat.name.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-primary truncate max-w-[300px]">{activeChat.name}</h3>
-                  <p className="text-xs text-secondary flex items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success mr-1.5 animate-pulse"></span>
-                    Online
-                  </p>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-extrabold text-slate-900 text-sm truncate max-w-[300px]">{activeChat.name}</h3>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      activeChat.channel === 'whatsapp' ? 'bg-emerald-100 text-emerald-800' :
+                      activeChat.channel === 'instagram' ? 'bg-pink-100 text-pink-800' :
+                      activeChat.channel === 'rcs' ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      via {activeChat.channel?.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">{activeChat.contact.phoneNumber} • Customer ID Verified</p>
                 </div>
               </div>
-              <button className="text-secondary hover:text-primary">
-                <MoreVertical className="w-5 h-5" />
-              </button>
+
+              <div className="flex items-center space-x-2 text-slate-400">
+                <button 
+                  onClick={() => soundFx.playKeyTone('1')}
+                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors" 
+                  title="Direct Call"
+                >
+                  <Phone className="w-4 h-4" />
+                </button>
+                <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors">
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Messages Area */}
-            <div className="flex-1 p-6 overflow-y-auto">
+            {/* Messages Canvas */}
+            <div className="flex-1 p-6 overflow-y-auto space-y-4">
               {loadingMessages ? (
-                <div className="h-full flex items-center justify-center text-secondary text-sm">Loading messages...</div>
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm">Loading message history...</div>
               ) : (
-                <div className="flex flex-col space-y-4">
-                  {activeChat.messages.map((msg, i) => (
-                    <div key={msg.id || i} className={cn("max-w-[70%]", msg.sender === 'agent' ? "self-end" : "self-start")}>
+                activeChat.messages.map((msg, i) => (
+                  <div 
+                    key={msg.id || i} 
+                    className={cn("max-w-[72%] flex flex-col", msg.sender === 'agent' || msg.sender === 'bot' ? "self-end items-end" : "self-start items-start")}
+                  >
+                    {/* Channel Specific Message Rendering */}
+                    {msg.channel === 'voice' || msg.text?.includes('[Audio Recording]') ? (
+                      <div className="bg-white border border-rose-200 p-4 rounded-2xl shadow-sm text-slate-900 max-w-md">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-extrabold text-rose-600 flex items-center">
+                            <Phone className="w-3.5 h-3.5 mr-1 text-rose-600" />
+                            VoIP AI Cold Call Audio
+                          </span>
+                          <span className="text-[10px] font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded">
+                            3m 15s • Positive Lead
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700 mb-3">{msg.text}</p>
+                        
+                        <button
+                          onClick={() => {
+                            if (playingVoiceId === msg.id) {
+                              setPlayingVoiceId(null);
+                            } else {
+                              soundFx.playConnectChime();
+                              setPlayingVoiceId(msg.id);
+                            }
+                          }}
+                          className="flex items-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                        >
+                          {playingVoiceId === msg.id ? <Pause className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-white" />}
+                          <span>{playingVoiceId === msg.id ? 'Pause Replay' : 'Listen to Recording'}</span>
+                        </button>
+                      </div>
+                    ) : msg.channel === 'rcs' && msg.mediaUrl ? (
+                      <div className="bg-white border border-blue-200 rounded-2xl overflow-hidden shadow-sm max-w-sm">
+                        <img src={msg.mediaUrl} alt="RCS Media" className="w-full h-36 object-cover" />
+                        <div className="p-3.5">
+                          <div className="flex items-center space-x-1 mb-1">
+                            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                            <span className="text-[10px] text-blue-600 font-extrabold">Verified Google RCS Card</span>
+                          </div>
+                          <p className="text-xs text-slate-800 leading-relaxed">{msg.text}</p>
+                        </div>
+                      </div>
+                    ) : (
                       <div className={cn(
-                        "border rounded-2xl px-4 py-3 text-sm shadow-sm",
+                        "rounded-2xl px-4 py-2.5 text-sm shadow-2xs leading-relaxed",
                         msg.sender === 'agent' 
-                          ? "bg-brand-primary text-white border-brand-primary rounded-tr-sm" 
-                          : "bg-surface border-border text-primary rounded-tl-sm"
+                          ? "bg-slate-900 text-white rounded-tr-xs" 
+                          : msg.sender === 'bot'
+                          ? "bg-indigo-600 text-white rounded-tr-xs"
+                          : "bg-white border border-slate-200 text-slate-900 rounded-tl-xs"
                       )}>
                         {msg.text}
                       </div>
-                      <span className={cn(
-                        "text-xs text-secondary mt-1 block", 
-                        msg.sender === 'agent' ? "text-right mr-1" : "ml-1"
-                      )}>{msg.time}</span>
+                    )}
+
+                    <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1">
+                      <span>{msg.time || 'Just now'}</span>
+                      {msg.sender === 'agent' && <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />}
                     </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
+                  </div>
+                ))
               )}
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Composer */}
-            <div className="p-4 bg-surface border-t border-border shrink-0">
-              <div className="flex items-end space-x-2 bg-sunken border border-border rounded-xl p-2 focus-within:border-brand-primary/50 transition-colors">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileUpload} 
-                  className="hidden" 
-                />
+            {/* AI Copilot Suggestion Bar */}
+            <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center space-x-2 overflow-x-auto scrollbar-none">
+              <span className="text-[10px] font-extrabold text-indigo-600 uppercase flex items-center shrink-0">
+                <Sparkles className="w-3 h-3 mr-1" />
+                AI Smart Replies:
+              </span>
+              {copilotSuggestions.map((sugg, i) => (
+                <button
+                  key={i}
+                  onClick={() => setInputText(sugg)}
+                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-indigo-400 text-slate-700 text-xs font-semibold whitespace-nowrap transition-colors shadow-2xs cursor-pointer"
+                >
+                  "{sugg.slice(0, 36)}..."
+                </button>
+              ))}
+            </div>
+
+            {/* Composer Box */}
+            <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+              <div className="flex items-end space-x-2 bg-slate-50 border border-slate-200 rounded-2xl p-2.5 focus-within:border-indigo-500 transition-colors">
+                <input type="file" ref={fileInputRef} className="hidden" />
                 <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 text-secondary hover:text-primary shrink-0 cursor-pointer"
-                  title="Attach file or image"
+                  className="p-2 text-slate-400 hover:text-slate-700 shrink-0 cursor-pointer"
                 >
-                  <Paperclip className="w-5 h-5" />
+                  <Paperclip className="w-4 h-4" />
                 </button>
-
 
                 <textarea 
                   value={inputText}
@@ -347,51 +577,24 @@ export function Inbox() {
                       handleSendMessage();
                     }
                   }}
-                  placeholder="Type a message..." 
-                  className="flex-1 max-h-32 bg-transparent resize-none outline-none text-sm py-2"
+                  placeholder={`Reply via ${activeChat.channel?.toUpperCase()}...`}
+                  className="flex-1 max-h-32 bg-transparent resize-none outline-none text-sm py-1.5 text-slate-900"
                   rows={1}
                 />
-                <div className="flex items-center space-x-1 shrink-0 pb-1">
-                  <button className="p-2 text-secondary hover:text-brand-primary transition-colors group relative">
-                    <Bot className="w-5 h-5" />
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface border border-border text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-sm">AI Reply</span>
-                  </button>
-                  <button onClick={handleSendMessage} className="p-2 bg-brand-primary text-white rounded-lg shadow-raised hover:opacity-90 transition-opacity">
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
+
+                <button 
+                  onClick={handleSendMessage}
+                  disabled={!inputText.trim()}
+                  className="p-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </>
         )}
       </div>
 
-      {/* Context Panel (300px) */}
-      {activeChat && (
-        <div className="hidden xl:flex w-[300px] shrink-0 border-l border-border bg-surface flex-col">
-          <div className="p-6 border-b border-border flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-full bg-sunken flex items-center justify-center text-2xl text-secondary font-medium mb-4 uppercase">
-              {activeChat.name.charAt(0)}
-            </div>
-            <h3 className="font-semibold text-lg">{activeChat.name}</h3>
-            <p className="text-sm text-secondary mt-1 capitalize">via {activeChat.channel}</p>
-          </div>
-          
-          <div className="p-6">
-            <h4 className="text-xs font-semibold text-secondary uppercase tracking-wider mb-4">Details</h4>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-secondary">Phone</span>
-                <span className="font-medium text-primary">{activeChat.contact.phoneNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-secondary">Status</span>
-                <span className="font-medium text-success capitalize">Active</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

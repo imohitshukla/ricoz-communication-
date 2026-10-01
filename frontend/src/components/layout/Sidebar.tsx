@@ -14,11 +14,22 @@ import {
   LayoutTemplate,
   ChevronDown,
   Menu,
+  Phone,
+  ShieldCheck,
+  Camera,
+  MessageSquare,
+  Key,
+  Radio,
+  FileText,
+  ListFilter,
+  Flame,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Sidebar() {
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    omnichannel: true,
     automation: true
   });
 
@@ -27,224 +38,266 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-[260px] h-screen bg-[#f8fcf9] border-r border-gray-200 flex flex-col z-20 shrink-0">
+    <aside className="w-[264px] h-screen bg-slate-900 border-r border-slate-800 flex flex-col z-20 shrink-0 text-slate-300">
       
-      {/* Sidebar Header (Burger + Logo) */}
-      <div className="flex items-center shrink-0 h-16 border-b border-gray-200 bg-white">
-        <button className="w-16 h-16 bg-[#1e4c3b] flex items-center justify-center shrink-0 hover:bg-[#153a2d] transition-colors">
-          <Menu className="w-6 h-6 text-white" />
-        </button>
-        <div className="flex items-center px-4">
-          <div className="w-6 h-6 bg-[#00a688] rounded-md flex items-center justify-center mr-2">
-            <span className="text-white font-bold text-xs">R</span>
+      {/* Sidebar Header */}
+      <div className="flex items-center shrink-0 h-16 border-b border-slate-800 bg-slate-950 px-4 justify-between">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 bg-gradient-to-tr from-[#00a688] to-emerald-400 rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/20">
+            <span className="text-white font-extrabold text-sm tracking-wider">R</span>
           </div>
-          <span className="font-bold text-gray-900 text-lg tracking-tight">Ricoz</span>
+          <div>
+            <span className="font-extrabold text-white text-base tracking-tight block leading-none">Ricoz</span>
+            <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">Omnichannel AI</span>
+          </div>
         </div>
+        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+          v3.2 PRO
+        </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 scrollbar-hide">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-6 scrollbar-thin scrollbar-thumb-slate-800">
         
-        <div className="mb-4">
+        {/* Core Hubs */}
+        <div className="px-4 mb-2">
+          <span className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase">Mission Control</span>
+        </div>
+
+        <div className="space-y-0.5 px-2 mb-4">
           <NavLink
             to="/dashboard/overview"
             className={({ isActive }) => cn(
-              "flex items-center px-6 py-2.5 transition-colors text-sm font-medium",
-              isActive ? "text-[#00a688] bg-[#00a688]/10 border-l-4 border-[#00a688]" : "text-gray-700 hover:bg-gray-100 border-l-4 border-transparent"
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
             )}
           >
-            <Home className="w-4 h-4 mr-3" />
-            Home
+            <Home className="w-4 h-4 mr-2.5 text-emerald-400" />
+            Overview
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/inbox"
+            className={({ isActive }) => cn(
+              "flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-indigo-500/15 border border-indigo-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <div className="flex items-center">
+              <Mail className="w-4 h-4 mr-2.5 text-indigo-400" />
+              Unified Inbox
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold">Live</span>
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/campaigns"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <Send className="w-4 h-4 mr-2.5 text-teal-400" />
+            Broadcast Studio
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/contacts"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <Users className="w-4 h-4 mr-2.5 text-blue-400" />
+            Contacts & Segments
           </NavLink>
         </div>
 
-        <div className="px-6 mb-2">
-          <span className="text-[10px] font-bold text-[#8a98b4] tracking-wider uppercase">Quick Links</span>
+        {/* Omnichannel Channels Section */}
+        <div className="px-4 mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase">Omnichannel Engines</span>
+          <span className="text-[9px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-bold">4 Active</span>
         </div>
 
-        <div className="space-y-0.5">
-          {[
-            { icon: Mail, label: 'Inbox', path: '/dashboard/inbox' },
-            { icon: Send, label: 'Campaigns', path: '/dashboard/campaigns' },
-            { icon: Users, label: 'Contacts', path: '/dashboard/contacts' },
-          ].map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => cn(
-                "flex items-center px-6 py-2.5 transition-colors text-sm font-medium",
-                isActive ? "text-[#00a688] bg-[#00a688]/10 border-l-4 border-[#00a688]" : "text-gray-700 hover:bg-gray-100 border-l-4 border-transparent"
-              )}
-            >
-              <item.icon className="w-4 h-4 mr-3" />
-              {item.label}
-            </NavLink>
-          ))}
-        </div>
-
-        {/* Collapsible Menus */}
-        <div className="mt-2 space-y-0.5">
-          {/* Market */}
-          <div>
-            <button className="w-full flex items-center justify-between px-6 py-2.5 text-gray-700 hover:bg-gray-100 transition-colors border-l-4 border-transparent">
-              <div className="flex items-center text-sm font-medium">
-                <Store className="w-4 h-4 mr-3" />
-                Market
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
-
-          {/* Support */}
-          <div>
-            <button className="w-full flex items-center justify-between px-6 py-2.5 text-gray-700 hover:bg-gray-100 transition-colors border-l-4 border-transparent">
-              <div className="flex items-center text-sm font-medium">
-                <HelpCircle className="w-4 h-4 mr-3" />
-                Support
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
-
-          {/* Automation */}
-          <div>
-            <button 
-              onClick={() => toggleMenu('automation')}
-              className={cn(
-                "w-full flex items-center justify-between px-6 py-2.5 transition-colors border-l-4",
-                expandedMenus.automation ? "border-transparent bg-transparent" : "border-transparent hover:bg-gray-100"
-              )}
-            >
-              <div className="flex items-center text-sm font-medium text-gray-700">
-                <Zap className="w-4 h-4 mr-3" />
-                Automation
-                <span className="ml-2 text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded-full font-bold">New</span>
-              </div>
-              <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform", expandedMenus.automation ? "rotate-180" : "")} />
-            </button>
-            
-            {expandedMenus.automation && (
-              <div className="bg-[#f0fbf6] py-2 mt-1 relative">
-                <div className="absolute left-[38px] top-0 bottom-0 w-px bg-gray-200"></div>
-                <ul className="space-y-1">
-                  {[
-                    { label: 'Basic Automations', path: '/dashboard/automation/basic' },
-                    { label: 'Custom Auto Reply', path: '/dashboard/automation/custom' },
-                    { label: 'Workflows', path: '/dashboard/automation/workflows' },
-                    { label: 'AI Intent Matching', path: '/dashboard/automation/intent' },
-                    { label: 'WhatsApp AI Agent', path: '/dashboard/automation/ai-agent' },
-                    { label: 'Instagram Quickflows', path: '/dashboard/automation/ig-quickflows' },
-                    { label: 'Voice AI - Inbound Calls', path: '/dashboard/automation/voice' },
-                  ].map((subItem) => (
-                    <li key={subItem.path}>
-                      <NavLink
-                        to={subItem.path}
-                        className={({ isActive }) => cn(
-                          "flex items-center pl-[52px] pr-6 py-2 text-sm font-medium transition-colors relative",
-                          isActive ? "text-[#00a688] bg-[#dcf2e9]" : "text-gray-600 hover:text-gray-900 hover:bg-black/5"
-                        )}
-                      >
-                        {/* Tree node connector */}
-                        <div className="absolute left-[38px] top-1/2 w-3 h-px bg-gray-200"></div>
-                        {subItem.label}
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-                <div className="px-6 mt-4 mb-2">
-                  <span className="text-[10px] font-bold text-[#8a98b4] tracking-wider uppercase">Utilities</span>
-                </div>
-                <ul className="space-y-1">
-                  {[
-                    { label: 'WhatsApp Forms', path: '/dashboard/utilities/forms' },
-                    { label: 'Interaktive List', path: '/dashboard/utilities/list' },
-                  ].map((subItem) => (
-                    <li key={subItem.path}>
-                      <NavLink
-                        to={subItem.path}
-                        className={({ isActive }) => cn(
-                          "flex items-center pl-[52px] pr-6 py-2 text-sm font-medium transition-colors relative",
-                          isActive ? "text-[#00a688] bg-[#dcf2e9]" : "text-gray-600 hover:text-gray-900 hover:bg-black/5"
-                        )}
-                      >
-                        <div className="absolute left-[38px] top-1/2 w-3 h-px bg-gray-200"></div>
-                        {subItem.label}
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        <div className="space-y-0.5 px-2 mb-4">
+          <NavLink
+            to="/dashboard/rcs"
+            className={({ isActive }) => cn(
+              "flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-blue-500/20 border border-blue-400/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
             )}
-          </div>
+          >
+            <div className="flex items-center">
+              <ShieldCheck className="w-4 h-4 mr-2.5 text-blue-400" />
+              Google RCS Studio
+            </div>
+            <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded font-extrabold">NEW</span>
+          </NavLink>
 
-          {/* Sales CRM */}
-          <div>
-            <button className="w-full flex items-center justify-between px-6 py-2.5 text-gray-700 hover:bg-gray-100 transition-colors border-l-4 border-transparent">
-              <div className="flex items-center text-sm font-medium">
-                <LineChart className="w-4 h-4 mr-3" />
-                Sales CRM
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
+          <NavLink
+            to="/dashboard/voice"
+            className={({ isActive }) => cn(
+              "flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-rose-500/20 border border-rose-400/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <div className="flex items-center">
+              <Phone className="w-4 h-4 mr-2.5 text-rose-400" />
+              AI Cold Calling & VoIP
+            </div>
+            <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded font-extrabold">DIALER</span>
+          </NavLink>
 
-          {/* WhatsApp Commerce */}
-          <div>
-            <button className="w-full flex items-center justify-between px-6 py-2.5 text-gray-700 hover:bg-gray-100 transition-colors border-l-4 border-transparent">
-              <div className="flex items-center text-sm font-medium">
-                <ShoppingBag className="w-4 h-4 mr-3" />
-                WhatsApp Commerce
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
+          <NavLink
+            to="/dashboard/instagram"
+            className={({ isActive }) => cn(
+              "flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-pink-500/20 border border-pink-400/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <div className="flex items-center">
+              <Camera className="w-4 h-4 mr-2.5 text-pink-400" />
+              Instagram DM & Viral
+            </div>
+            <span className="text-[9px] bg-pink-500/20 text-pink-300 px-1.5 py-0.5 rounded font-extrabold">AUTO</span>
+          </NavLink>
 
-          {/* Integrations */}
-          <div>
-            <NavLink
-              to="/dashboard/integrations"
-              className={({ isActive }) => cn(
-                "flex items-center px-6 py-2.5 transition-colors text-sm font-medium",
-                isActive ? "text-[#00a688] bg-[#00a688]/10 border-l-4 border-[#00a688]" : "text-gray-700 hover:bg-gray-100 border-l-4 border-transparent"
-              )}
-            >
-              <Puzzle className="w-4 h-4 mr-3" />
-              Integrations
-            </NavLink>
-          </div>
-
-          {/* Widget */}
-          <div>
-            <NavLink
-              to="/dashboard/widget"
-              className={({ isActive }) => cn(
-                "flex items-center px-6 py-2.5 transition-colors text-sm font-medium",
-                isActive ? "text-[#00a688] bg-[#00a688]/10 border-l-4 border-[#00a688]" : "text-gray-700 hover:bg-gray-100 border-l-4 border-transparent"
-              )}
-            >
-              <LayoutTemplate className="w-4 h-4 mr-3" />
-              Widget
-            </NavLink>
-          </div>
-
-          <div className="px-6 mt-4 mb-2">
-            <span className="text-[10px] font-bold text-[#8a98b4] tracking-wider uppercase">Account</span>
-          </div>
-
-          <div>
-            <NavLink
-              to="/dashboard/billing"
-              className={({ isActive }) => cn(
-                "flex items-center px-6 py-2.5 transition-colors text-sm font-medium",
-                isActive ? "text-[#00a688] bg-[#00a688]/10 border-l-4 border-[#00a688]" : "text-gray-700 hover:bg-gray-100 border-l-4 border-transparent"
-              )}
-            >
-              <ShoppingBag className="w-4 h-4 mr-3" />
-              Billing
-            </NavLink>
-          </div>
-
+          <NavLink
+            to="/dashboard/automation/ai-agent"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <MessageSquare className="w-4 h-4 mr-2.5 text-emerald-400" />
+            WhatsApp AI Agent
+          </NavLink>
         </div>
+
+        {/* WhatsApp Interactive Utilities */}
+        <div className="px-4 mb-2">
+          <span className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase">WhatsApp Interactive</span>
+        </div>
+
+        <div className="space-y-0.5 px-2 mb-4">
+          <NavLink
+            to="/dashboard/utilities/forms"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <FileText className="w-4 h-4 mr-2.5 text-emerald-400" />
+            WhatsApp Forms (Flows)
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/utilities/list"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <ListFilter className="w-4 h-4 mr-2.5 text-emerald-400" />
+            Interactive List Menus
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/flow-builder"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-purple-500/15 border border-purple-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <Zap className="w-4 h-4 mr-2.5 text-purple-400" />
+            Visual Flow Builder
+          </NavLink>
+        </div>
+
+        {/* Credentials & System Hub */}
+        <div className="px-4 mb-2">
+          <span className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase">Platform & Keys</span>
+        </div>
+
+        <div className="space-y-0.5 px-2">
+          <NavLink
+            to="/dashboard/api-hub"
+            className={({ isActive }) => cn(
+              "flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-amber-500/20 border border-amber-400/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <div className="flex items-center">
+              <Key className="w-4 h-4 mr-2.5 text-amber-400" />
+              API Credentials Hub
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/integrations"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <Puzzle className="w-4 h-4 mr-2.5 text-slate-400" />
+            Integrations
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/analytics"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <LineChart className="w-4 h-4 mr-2.5 text-slate-400" />
+            ROI & Analytics
+          </NavLink>
+
+          <NavLink
+            to="/dashboard/billing"
+            className={({ isActive }) => cn(
+              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              isActive 
+                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+            )}
+          >
+            <ShoppingBag className="w-4 h-4 mr-2.5 text-slate-400" />
+            Billing & Usage
+          </NavLink>
+        </div>
+
       </nav>
 
     </aside>

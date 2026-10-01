@@ -43,6 +43,10 @@ model Workspace {
   teamInvitations      TeamInvitation[]
   callLogs             CallLog[]
   ivrConfig            IVRConfig?
+  coldCallCampaigns    ColdCallCampaign[]
+  rcsTemplates         RcsTemplate[]
+  rcsCampaigns         RcsCampaign[]
+  instagramRules       InstagramRule[]
 }
 
 model User {
@@ -100,6 +104,9 @@ model Message {
   text           String
   sender         String       // "agent", "contact", "bot"
   status         String       @default("sent") // sent, delivered, read, failed
+  channel        String?      @default("whatsapp")
+  mediaUrl       String?
+  metadata       String?      // Storing JSON string for buttons, cards, action payload
   timestamp      DateTime     @default(now())
 }
 
@@ -162,9 +169,11 @@ model CallLog {
   contactName String
   phoneNumber String
   duration    String
-  sentiment   String    @default("Neutral") // Positive, Neutral, Negative
-  type        String    @default("incoming") // incoming, outgoing, missed
+  sentiment   String    @default("Neutral") // Positive, Neutral, Negative, Interested
+  type        String    @default("incoming") // incoming, outgoing, missed, cold_call
   transcript  String?
+  summary     String?
+  audioUrl    String?
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   timestamp   DateTime  @default(now())
@@ -180,4 +189,60 @@ model IVRConfig {
   fallbackNumber String?
   updatedAt      DateTime  @updatedAt
 }
+
+model ColdCallCampaign {
+  id             String    @id @default(uuid())
+  name           String
+  status         String    @default("draft") // draft, running, completed, paused
+  totalLeads     Int       @default(0)
+  completedLeads Int       @default(0)
+  bookedDemos    Int       @default(0)
+  voicePersona   String    @default("ElevenLabs - Rachel (Warm B2B)")
+  scriptPrompt   String
+  leadsData      String?   // JSON array of contacts to dial
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model RcsTemplate {
+  id          String    @id @default(uuid())
+  name        String
+  cardType    String    @default("standalone") // standalone, carousel
+  title       String
+  description String
+  mediaUrl    String?
+  actions     String?   // JSON string array of action chips
+  status      String    @default("approved")
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model RcsCampaign {
+  id          String    @id @default(uuid())
+  name        String
+  status      String    @default("sent") // draft, sending, sent
+  sentCount   Int       @default(0)
+  readCount   Int       @default(0)
+  clickCount  Int       @default(0)
+  templateId  String?
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model InstagramRule {
+  id           String    @id @default(uuid())
+  triggerType  String    @default("comment") // comment, story_mention, dm_keyword
+  keyword      String
+  replyComment String?
+  dmResponse   String
+  isActive     Boolean   @default(true)
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt    DateTime  @default(now())
+}
+
 

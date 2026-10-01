@@ -40,15 +40,12 @@ import { PublicIntegrations } from '@/pages/Public/PublicIntegrations';
 import { PartnerProgram } from '@/pages/Public/PartnerProgram';
 import { LiveDemo } from '@/pages/Public/LiveDemo';
 
-const ComingSoon = ({ title }: { title: string }) => (
-  <div className="flex-1 flex flex-col items-center justify-center h-full bg-[#f8fcf9]">
-    <div className="w-16 h-16 bg-[#f0fbf6] border border-[#d2efe0] rounded-2xl flex items-center justify-center mb-4">
-      <span className="text-3xl">🚀</span>
-    </div>
-    <h2 className="text-xl font-bold text-gray-900 mb-2">{title}</h2>
-    <p className="text-gray-500 text-sm text-center max-w-xs">This module is being built. Check back soon or contact support for early access.</p>
-  </div>
-);
+import { RCSStudio } from './pages/RCS/RCSStudio';
+import { ColdCallingHub } from './pages/Voice/ColdCallingHub';
+import { InstagramStudio } from './pages/Instagram/InstagramStudio';
+import { WhatsAppForms } from './pages/Automation/WhatsAppForms';
+import { WhatsAppLists } from './pages/Automation/WhatsAppLists';
+import { APIHub } from './pages/Settings/APIHub';
 
 function App() {
   return (
@@ -77,6 +74,11 @@ function App() {
           <Route path="inbox" element={<Inbox />} />
           <Route path="contacts" element={<Contacts />} />
           <Route path="campaigns" element={<Campaigns />} />
+          <Route path="whatsapp" element={<Campaigns />} />
+          <Route path="rcs" element={<RCSStudio />} />
+          <Route path="voice" element={<ColdCallingHub />} />
+          <Route path="instagram" element={<InstagramStudio />} />
+          <Route path="api-hub" element={<APIHub />} />
           <Route path="flow-builder" element={<JourneyBuilder />} />
           <Route path="agents" element={<Agents />} />
           <Route path="automation/basic" element={<BasicAutomations />} />
@@ -84,18 +86,17 @@ function App() {
           <Route path="automation/workflows" element={<Workflows />} />
           <Route path="automation/intent" element={<AIIntentMatching />} />
           <Route path="automation/ai-agent" element={<WhatsAppAIAgent />} />
-          <Route path="automation/ig-quickflows" element={<InstagramQuickflows />} />
+          <Route path="automation/ig-quickflows" element={<InstagramStudio />} />
           <Route path="automation/voice" element={<VoiceAI />} />
-          <Route path="utilities/forms" element={<ComingSoon title="WhatsApp Forms" />} />
-          <Route path="utilities/list" element={<ComingSoon title="Interactive Lists" />} />
+          <Route path="utilities/forms" element={<WhatsAppForms />} />
+          <Route path="utilities/list" element={<WhatsAppLists />} />
           <Route path="commerce" element={<Commerce />} />
-          <Route path="voice" element={<Voice />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="team" element={<Team />} />
           <Route path="integrations" element={<Integrations />} />
           <Route path="settings" element={<Settings />} />
           <Route path="billing" element={<Billing />} />
-          <Route path="*" element={<ComingSoon title="Coming Soon" />} />
+          <Route path="*" element={<Navigate to="overview" replace />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

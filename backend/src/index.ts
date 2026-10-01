@@ -59,6 +59,9 @@ import { teamRouter } from './routes/team';
 import { commerceRouter } from './routes/commerce';
 import { voiceRouter } from './routes/voice';
 import { mediaRouter } from './routes/media';
+import { rcsRouter } from './routes/rcs';
+import { instagramRouter } from './routes/instagram';
+import { integrationsRouter } from './routes/integrations';
 import authRoutes from './routes/auth';
 import { testSmtpConnection } from './services/emailService';
 
@@ -87,6 +90,9 @@ app.use('/api/team', teamRouter);
 app.use('/api/commerce', commerceRouter);
 app.use('/api/voice', voiceRouter);
 app.use('/api/media', mediaRouter);
+app.use('/api/rcs', rcsRouter);
+app.use('/api/instagram', instagramRouter);
+app.use('/api/integrations', integrationsRouter);
 
 
 
