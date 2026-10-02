@@ -71,6 +71,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ricoz Communication API is running' });
 });
 
+// Version endpoint
+app.get('/api/version', (_req, res) => {
+  res.json({
+    version: '3.3.0',
+    ragStudio: true,
+    deployedAt: new Date().toISOString()
+  });
+});
+
 // SMTP connection test endpoint  — GET /api/test-smtp
 app.get('/api/test-smtp', async (_req, res) => {
   const result = await testSmtpConnection();
