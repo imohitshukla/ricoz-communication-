@@ -368,7 +368,8 @@ router.post('/sandbox/chat', authenticate, async (req, res) => {
       contactName,
       message,
       recentMessages,
-      workspaceId
+      workspaceId,
+      true
     );
 
     res.json(result);

@@ -55,7 +55,8 @@ export async function generateAgentResponseDetailed(
   contactName: string,
   incomingMessage: string,
   recentMessages: { text: string, sender: string }[] = [],
-  workspaceId?: string
+  workspaceId?: string,
+  isSandbox = false
 ): Promise<AgentResponseResult> {
   const startTime = Date.now();
 
@@ -74,7 +75,7 @@ Your goal is to assist customers quickly and accurately.`;
   if (workspaceId) {
     const config = await prisma.aIAgentConfig.findUnique({ where: { workspaceId } });
     if (config) {
-      if (!config.isActive) {
+      if (!isSandbox && !config.isActive) {
         return {
           reply: '',
           citedSources: [],
