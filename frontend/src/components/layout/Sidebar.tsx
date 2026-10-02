@@ -43,7 +43,7 @@ export function Sidebar() {
       {/* Sidebar Header */}
       <div className="flex items-center shrink-0 h-16 border-b border-slate-800 bg-slate-950 px-4 justify-between">
         <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 bg-gradient-to-tr from-[#00a688] to-emerald-400 rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/20">
+          <div className="w-8 h-8 bg-gradient-to-tr from-[#00a688] to-emerald-400 rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/30 animate-morph-border">
             <span className="text-white font-extrabold text-sm tracking-wider">R</span>
           </div>
           <div>
@@ -51,7 +51,8 @@ export function Sidebar() {
             <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">Omnichannel AI</span>
           </div>
         </div>
-        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20 flex items-center">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
           v3.2 PRO
         </span>
       </div>
@@ -124,7 +125,10 @@ export function Sidebar() {
         {/* Omnichannel Channels Section */}
         <div className="px-4 mb-2 flex items-center justify-between">
           <span className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase">Omnichannel Engines</span>
-          <span className="text-[9px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-bold">4 Active</span>
+          <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/20 flex items-center">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1 animate-pulse" />
+            4 Live
+          </span>
         </div>
 
         <div className="space-y-0.5 px-2 mb-4">
@@ -299,6 +303,23 @@ export function Sidebar() {
         </div>
 
       </nav>
+
+      {/* Bottom Status Strip */}
+      <div className="shrink-0 border-t border-slate-800 bg-slate-950 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex">
+              <span className="animate-ring absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400">All Systems Live</span>
+          </div>
+          <span className="text-[10px] text-slate-600 font-mono">99.9% uptime</span>
+        </div>
+        <div className="mt-2 h-1 bg-slate-800 rounded-full overflow-hidden">
+          <div className="h-full w-[99.9%] bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full" />
+        </div>
+      </div>
 
     </aside>
   );
