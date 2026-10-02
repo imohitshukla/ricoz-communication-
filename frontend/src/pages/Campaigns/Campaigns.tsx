@@ -56,41 +56,8 @@ export function Campaigns() {
       }
 
       // Initial campaign records
-      setCampaigns([
-        {
-          id: 'c-1',
-          name: 'VIP WhatsApp Omnichannel Broadcast',
-          channel: 'WhatsApp',
-          type: 'Template Broadcast',
-          status: 'Active',
-          sent: 4850,
-          read: 4420,
-          replied: 1890,
-          conversion: '39.0%'
-        },
-        {
-          id: 'c-2',
-          name: 'Google RCS Flash Sale Carousel',
-          channel: 'RCS',
-          type: 'Rich Carousel',
-          status: 'Completed',
-          sent: 3200,
-          read: 2950,
-          replied: 1420,
-          conversion: '44.3%'
-        },
-        {
-          id: 'c-3',
-          name: 'Autonomous AI Cold Calling Batch #1',
-          channel: 'Voice',
-          type: 'VoIP AI Closer',
-          status: 'Active',
-          sent: 150,
-          read: 142,
-          replied: 48,
-          conversion: '33.8%'
-        }
-      ]);
+      // Campaigns are loaded only from real DB — no fake seed data
+      setCampaigns([]);
     } catch (e) {
       console.error('Failed to load campaign data:', e);
     }
@@ -227,25 +194,37 @@ export function Campaigns() {
           <div className="mt-2 text-3xl font-extrabold text-slate-900">
             {campaigns.reduce((acc, c) => acc + (c.sent || 0), 0).toLocaleString()}
           </div>
-          <span className="text-xs text-emerald-600 font-semibold mt-1 block">99.4% deliverability</span>
+          <span className="text-xs text-slate-500 font-semibold mt-1 block">
+            {campaigns.length === 0 ? 'No broadcasts yet' : `Across ${campaigns.length} campaign${campaigns.length > 1 ? 's' : ''}`}
+          </span>
         </div>
 
         <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-          <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Avg. Verified Read Rate</h3>
-          <div className="mt-2 text-3xl font-extrabold text-emerald-600">89.6%</div>
-          <span className="text-xs text-slate-500 mt-1 block">RCS & WhatsApp combined</span>
+          <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Messages Read</h3>
+          <div className="mt-2 text-3xl font-extrabold text-emerald-600">
+            {campaigns.reduce((acc, c) => acc + (c.read || 0), 0).toLocaleString()}
+          </div>
+          <span className="text-xs text-slate-500 mt-1 block">
+            {campaigns.length === 0 ? '—' : 'Across all channels'}
+          </span>
         </div>
 
         <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-          <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Avg. Engagement CTR</h3>
-          <div className="mt-2 text-3xl font-extrabold text-indigo-600">41.2%</div>
-          <span className="text-xs text-slate-500 mt-1 block">Click-to-CTA buttons</span>
+          <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Interactions</h3>
+          <div className="mt-2 text-3xl font-extrabold text-indigo-600">
+            {campaigns.reduce((acc, c) => acc + (c.replied || 0), 0).toLocaleString()}
+          </div>
+          <span className="text-xs text-slate-500 mt-1 block">
+            {campaigns.length === 0 ? '—' : 'Replies & CTA clicks'}
+          </span>
         </div>
 
         <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-          <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Active Channels</h3>
-          <div className="mt-2 text-3xl font-extrabold text-slate-900">4 Omnichannel</div>
-          <span className="text-xs text-emerald-600 font-semibold mt-1 block">WhatsApp • RCS • IG • Voice</span>
+          <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider">Campaigns Launched</h3>
+          <div className="mt-2 text-3xl font-extrabold text-slate-900">{campaigns.length}</div>
+          <span className="text-xs text-emerald-600 font-semibold mt-1 block">
+            {campaigns.length === 0 ? 'Launch your first broadcast above' : 'WhatsApp • RCS • IG • Voice'}
+          </span>
         </div>
       </div>
 

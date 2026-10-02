@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   MessageSquare, ShieldCheck, Phone, Camera,
-  CheckCircle2, Zap, Sparkles, ArrowUpRight, TrendingUp,
-  Send, Key, Users, BarChart3, Bot, Radio, Activity,
-  Flame, Star, Globe, Lock, ChevronRight
+  CheckCircle2, Zap, ArrowUpRight, TrendingUp,
+  Send, Key, Users, BarChart3, Bot, Activity,
+  Flame, Globe, Lock, ChevronRight, RefreshCw,
+  Inbox, AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 /* ── Animated counter ── */
-function useAnimatedCounter(target: number, duration = 1800, delay = 0) {
+function useAnimatedCounter(target: number, duration = 1600, delay = 0) {
   const [value, setValue] = useState(0);
   const raf = useRef<number>(0);
   useEffect(() => {
+    if (target === 0) { setValue(0); return; }
     const t = setTimeout(() => {
       const start = performance.now();
       const tick = (now: number) => {
@@ -27,12 +30,17 @@ function useAnimatedCounter(target: number, duration = 1800, delay = 0) {
   return value;
 }
 
+/* ── Shimmer skeleton ── */
+function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`shimmer rounded-lg ${className}`} />;
+}
+
 /* ── Stat card ── */
-function StatCard({ label, value, suffix, sub, subColor, icon: Icon, gradient, delay }: any) {
-  const animated = useAnimatedCounter(value, 1600, delay ?? 0);
+function StatCard({ label, value, suffix = '', sub, subColor, icon: Icon, gradient, delay, loading }: any) {
+  const animated = useAnimatedCounter(loading ? 0 : value, 1600, delay ?? 0);
   return (
-    <div className={`relative overflow-hidden rounded-2xl p-px animate-slide-up`} style={{ animationDelay: `${delay}ms` }}>
-      <div className={`absolute inset-0 ${gradient} opacity-80 rounded-2xl`} />
+    <div className="relative overflow-hidden rounded-2xl p-px animate-slide-up" style={{ animationDelay: `${delay}ms` }}>
+      <div className={`absolute inset-0 ${gradient} opacity-70 rounded-2xl`} />
       <div className="relative bg-white/95 rounded-[15px] p-5 h-full hover-lift transition-all">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">{label}</span>
@@ -40,32 +48,29 @@ function StatCard({ label, value, suffix, sub, subColor, icon: Icon, gradient, d
             <Icon className="w-4 h-4 text-white" />
           </div>
         </div>
-        <div className="text-3xl font-black text-slate-900 tabular-nums tracking-tight">
-          {animated.toLocaleString()}{suffix}
-        </div>
+        {loading ? (
+          <Skeleton className="h-9 w-24 mb-2" />
+        ) : (
+          <div className="text-3xl font-black text-slate-900 tabular-nums tracking-tight">
+            {animated.toLocaleString()}{suffix}
+          </div>
+        )}
         <div className={`text-xs font-bold mt-1.5 flex items-center gap-1 ${subColor ?? 'text-emerald-600'}`}>
-          <TrendingUp className="w-3 h-3" />
-          {sub}
+          {loading ? <Skeleton className="h-3 w-20" /> : <><TrendingUp className="w-3 h-3" />{sub}</>}
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Channel card ── */
+/* ── Channel card (no fake stats, just capability info) ── */
 function ChannelCard({ ch, delay, navigate }: any) {
   return (
-    <div
-      className="relative group rounded-3xl overflow-hidden animate-slide-up hover-lift cursor-default"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      {/* Gradient border via outline div */}
-      <div className={`absolute inset-0 ${ch.border} rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-      <div className="relative bg-white border border-slate-200 rounded-3xl p-6 flex flex-col gap-4 group-hover:border-transparent transition-all">
-        {/* Top */}
+    <div className="relative group rounded-3xl overflow-hidden animate-slide-up hover-lift" style={{ animationDelay: `${delay}ms` }}>
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col gap-4 group-hover:border-slate-300 group-hover:shadow-lg transition-all">
         <div className="flex items-start justify-between">
-          <div className={`w-13 h-13 rounded-2xl ${ch.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-            <ch.icon className={`w-6 h-6 ${ch.iconText}`} />
+          <div className={`w-12 h-12 rounded-2xl ${ch.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+            <ch.icon className="w-6 h-6 text-white" />
           </div>
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border flex items-center gap-1.5 ${ch.badge}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${ch.dot} animate-pulse`} />
@@ -73,23 +78,11 @@ function ChannelCard({ ch, delay, navigate }: any) {
           </span>
         </div>
 
-        {/* Title + desc */}
         <div>
           <h3 className="text-base font-black text-slate-900 leading-snug mb-1.5">{ch.title}</h3>
           <p className="text-[11px] text-slate-500 leading-relaxed">{ch.desc}</p>
         </div>
 
-        {/* Stats strip */}
-        <div className={`grid grid-cols-3 gap-2 rounded-xl p-3 ${ch.statsBg}`}>
-          {ch.stats.map((s: any) => (
-            <div key={s.label} className="text-center">
-              <div className={`text-sm font-black ${ch.statsValue}`}>{s.value}</div>
-              <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wide mt-0.5">{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Features */}
         <div className="grid grid-cols-2 gap-1.5">
           {ch.features.map((f: string) => (
             <div key={f} className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
@@ -99,7 +92,6 @@ function ChannelCard({ ch, delay, navigate }: any) {
           ))}
         </div>
 
-        {/* CTA */}
         <div className="flex gap-2 pt-2 border-t border-slate-100">
           <button
             onClick={() => navigate(ch.btnPath)}
@@ -121,99 +113,114 @@ function ChannelCard({ ch, delay, navigate }: any) {
   );
 }
 
+/* ── Empty state ── */
+function EmptyActivity() {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+      <Inbox className="w-10 h-10 text-slate-300 mb-3" />
+      <p className="text-sm font-bold text-slate-500">No activity yet</p>
+      <p className="text-xs text-slate-400 mt-1">Messages will appear here once contacts start sending</p>
+    </div>
+  );
+}
+
 export function DashboardOverview() {
   const navigate = useNavigate();
-  const [tick, setTick] = useState(0);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
+  const fetchStats = async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError('');
+    try {
+      const res = await api.get('/api/analytics');
+      setStats(res.data);
+    } catch (e: any) {
+      setError('Could not load stats. Check your connection.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => { fetchStats(); }, []);
+
+  // Auto-refresh every 60s
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 3000);
+    const id = setInterval(() => fetchStats(true), 60000);
     return () => clearInterval(id);
   }, []);
-
-  const liveEvents = [
-    { icon: '🔥', text: 'WhatsApp broadcast sent to 4,850 contacts', time: '2m ago', color: 'text-emerald-600' },
-    { icon: '📞', text: 'AI Closer booked meeting with Sarah Jenkins (VP Marketing)', time: '8m ago', color: 'text-rose-600' },
-    { icon: '📷', text: 'Instagram comment "PRICE" triggered DM to @alex_founder', time: '12m ago', color: 'text-pink-600' },
-    { icon: '💬', text: 'Google RCS carousel delivered to 3,200 Android users', time: '19m ago', color: 'text-blue-600' },
-    { icon: '🤖', text: 'AI Agent replied to 23 conversations autonomously', time: '24m ago', color: 'text-purple-600' },
-  ];
 
   const channels = [
     {
       icon: MessageSquare, iconBg: 'bg-gradient-to-br from-emerald-400 to-teal-600',
-      iconText: 'text-white', border: 'bg-gradient-to-br from-emerald-400 to-teal-600',
       badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       dot: 'bg-emerald-500', badgeLabel: 'WhatsApp Cloud API',
       title: 'WhatsApp Marketing & Interactive Flows',
-      desc: 'Send personalized broadcast templates with media, interactive WhatsApp Flows for lead gen, and 10-item list menus.',
-      stats: [{ value: '4,850', label: 'Sent' }, { value: '98.4%', label: 'Delivered' }, { value: '39%', label: 'Converted' }],
-      statsBg: 'bg-emerald-50/60', statsValue: 'text-emerald-700', checkColor: 'text-emerald-500',
-      features: ['Template Personalization', 'In-App Forms (Flows)', '10-Item List Menus', '98.4% Delivery Rate'],
+      desc: 'Send personalized broadcast templates with media, interactive Flows for lead gen, and 10-item list menus — all tracked in real time.',
+      checkColor: 'text-emerald-500',
+      features: ['Template Broadcasts', 'In-App Flows (Forms)', '10-Item List Menus', 'AI Auto-Reply'],
       btnGradient: 'bg-gradient-to-r from-emerald-500 to-teal-600',
-      btnLabel: 'Launch WhatsApp Broadcast', btnPath: '/dashboard/campaigns',
+      btnLabel: 'Launch Broadcast', btnPath: '/dashboard/campaigns',
       secondary: { label: 'Flows', path: '/dashboard/utilities/forms' },
     },
     {
       icon: ShieldCheck, iconBg: 'bg-gradient-to-br from-blue-500 to-indigo-600',
-      iconText: 'text-white', border: 'bg-gradient-to-br from-blue-500 to-indigo-600',
       badge: 'bg-blue-50 text-blue-700 border-blue-200',
-      dot: 'bg-blue-500', badgeLabel: 'Google RBM Verified',
+      dot: 'bg-blue-500', badgeLabel: 'Google RBM — API Key Required',
       title: 'Google RCS Business Messaging (RBM)',
       desc: 'Deliver verified rich cards and swipeable carousels with clickable action chips inside native Android Google Messages.',
-      stats: [{ value: '3,200', label: 'Sent' }, { value: '91.4%', label: 'Read' }, { value: '44.8%', label: 'CTR' }],
-      statsBg: 'bg-blue-50/60', statsValue: 'text-blue-700', checkColor: 'text-blue-500',
-      features: ['Verified Green Badge', 'Rich Action Chips', 'Sliding Carousels', 'SMS Fallback Engine'],
+      checkColor: 'text-blue-500',
+      features: ['Verified Green Badge', 'Rich Action Chips', 'Sliding Carousels', 'SMS Fallback'],
       btnGradient: 'bg-gradient-to-r from-blue-500 to-indigo-600',
-      btnLabel: 'Open RCS Studio & Emulator', btnPath: '/dashboard/rcs',
+      btnLabel: 'Open RCS Studio', btnPath: '/dashboard/rcs',
       secondary: null,
     },
     {
       icon: Phone, iconBg: 'bg-gradient-to-br from-rose-500 to-red-600',
-      iconText: 'text-white', border: 'bg-gradient-to-br from-rose-500 to-red-600',
       badge: 'bg-rose-50 text-rose-700 border-rose-200',
-      dot: 'bg-rose-500', badgeLabel: 'ElevenLabs AI Voice',
+      dot: 'bg-rose-500', badgeLabel: 'ElevenLabs — API Key Required',
       title: 'AI Cold Calling & Virtual VoIP Dialer',
-      desc: 'Deploy autonomous outbound dialing with ultra-realistic voices, live speech-to-text, objection handling, and demo booking.',
-      stats: [{ value: '150', label: 'Dialed' }, { value: '142', label: 'Connected' }, { value: '33.8%', label: 'Booked' }],
-      statsBg: 'bg-rose-50/60', statsValue: 'text-rose-700', checkColor: 'text-rose-500',
-      features: ['WebAudio DTMF Dialpad', 'Live Audio Waveform', 'Real-time AI Transcript', 'Autonomous Closer Script'],
+      desc: 'Autonomous outbound dialing with ultra-realistic AI voices, live speech-to-text transcription, and automatic demo booking.',
+      checkColor: 'text-rose-500',
+      features: ['DTMF Dialpad', 'Live Waveform', 'AI Transcript', 'Closer Script'],
       btnGradient: 'bg-gradient-to-r from-rose-500 to-red-600',
-      btnLabel: 'Open Interactive Dialer', btnPath: '/dashboard/voice',
+      btnLabel: 'Open Dialer', btnPath: '/dashboard/voice',
       secondary: null,
     },
     {
       icon: Camera, iconBg: 'bg-gradient-to-br from-pink-500 to-purple-600',
-      iconText: 'text-white', border: 'bg-gradient-to-br from-pink-500 to-purple-600',
       badge: 'bg-pink-50 text-pink-700 border-pink-200',
-      dot: 'bg-pink-500', badgeLabel: 'Instagram Graph API',
+      dot: 'bg-pink-500', badgeLabel: 'Instagram Graph — API Key Required',
       title: 'Instagram Direct & Viral Comment Engine',
-      desc: 'Trigger automated DM links and secret discounts whenever a prospect comments a keyword on your viral Reels.',
-      stats: [{ value: '3,480', label: 'DMs Sent' }, { value: '1.8s', label: 'Latency' }, { value: '62.4%', label: 'Click CTR' }],
-      statsBg: 'bg-pink-50/60', statsValue: 'text-pink-700', checkColor: 'text-pink-500',
-      features: ['Comment-to-DM Triggers', 'Story Mention Auto-Reply', '1.8s Response Time', 'Live DM Preview'],
+      desc: 'Trigger automated DMs whenever someone comments a keyword on your Reels. Turn viral comments into paying customers instantly.',
+      checkColor: 'text-pink-500',
+      features: ['Comment-to-DM Triggers', 'Story Mention Reply', 'Live DM Preview', 'Keyword Rules'],
       btnGradient: 'bg-gradient-to-r from-pink-600 to-purple-600',
-      btnLabel: 'Configure Instagram Quickflows', btnPath: '/dashboard/instagram',
+      btnLabel: 'Configure Instagram', btnPath: '/dashboard/instagram',
       secondary: null,
     },
   ];
+
+  const activityIcons: Record<string, string> = {
+    inbound: '💬',
+    bot: '🤖',
+    agent: '👤',
+  };
 
   return (
     <div className="flex-1 overflow-y-auto h-full" style={{ background: 'linear-gradient(160deg, #f0fdf8 0%, #f8faff 40%, #fdf4ff 100%)' }}>
       <div className="max-w-[1260px] mx-auto px-8 py-8 space-y-8">
 
-        {/* ── HERO BANNER ── */}
+        {/* ── HERO ── */}
         <div className="relative rounded-[28px] overflow-hidden shadow-2xl">
-          {/* Base dark animated gradient */}
           <div className="absolute inset-0 bg-animated-gradient" />
-          {/* Overlay mesh */}
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 70% 50%, rgba(99,102,241,0.35) 0%, transparent 70%), radial-gradient(ellipse 50% 80% at 20% 80%, rgba(0,196,156,0.3) 0%, transparent 70%)' }} />
-          {/* Noise texture */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
-
           <div className="relative z-10 p-9">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div className="flex-1">
-                {/* Badges */}
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                   <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-black flex items-center gap-2">
                     <span className="relative flex h-2 w-2">
@@ -222,65 +229,40 @@ export function DashboardOverview() {
                     </span>
                     LIVE · Omnichannel AI Platform
                   </span>
-                  <span className="px-3 py-1 rounded-full bg-white/8 border border-white/15 text-slate-300 text-xs font-bold">
-                    VC Ready · Enterprise Grade
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold">
-                    ✦ 4 Channels Active
-                  </span>
+                  <span className="px-3 py-1 rounded-full bg-white/8 border border-white/15 text-slate-300 text-xs font-bold">VC Ready · Enterprise Grade</span>
                 </div>
-
-                {/* Heading */}
                 <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-3">
-                  Welcome back,{' '}
+                  Welcome back 👋
+                  <br />
                   <span style={{ background: 'linear-gradient(90deg, #34d399, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    Mohit
-                  </span>{' '}
-                  <span className="animate-float inline-block">👋</span>
+                    Ricoz Dashboard
+                  </span>
                 </h1>
                 <p className="text-slate-300 text-sm leading-relaxed max-w-xl">
-                  Your unified OS for high-intent customer acquisition across{' '}
-                  <span className="text-emerald-400 font-bold">WhatsApp Business</span>,{' '}
+                  Your unified platform for{' '}
+                  <span className="text-emerald-400 font-bold">WhatsApp</span>,{' '}
                   <span className="text-blue-400 font-bold">Google RCS</span>,{' '}
-                  <span className="text-pink-400 font-bold">Instagram Viral</span>, and{' '}
+                  <span className="text-pink-400 font-bold">Instagram</span>, and{' '}
                   <span className="text-rose-400 font-bold">AI Cold Calling</span>.
+                  All data below is live from your workspace.
                 </p>
-
-                {/* Live ticker */}
-                <div className="mt-5 flex items-center gap-2 bg-white/6 border border-white/10 rounded-xl px-4 py-2.5 w-max">
-                  <Flame className="w-4 h-4 text-orange-400 shrink-0" />
-                  <span className="text-xs text-slate-300 font-semibold">
-                    {liveEvents[tick % liveEvents.length].text}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono shrink-0">{liveEvents[tick % liveEvents.length].time}</span>
-                </div>
               </div>
-
-              {/* Right CTAs */}
               <div className="flex flex-col gap-3 shrink-0">
-                <button
-                  onClick={() => navigate('/dashboard/campaigns')}
+                <button onClick={() => navigate('/dashboard/campaigns')}
                   className="flex items-center justify-center gap-2 font-black text-sm px-7 py-3.5 rounded-2xl text-white shadow-xl transition-all hover:scale-[1.03] cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #10b981, #0891b2)', boxShadow: '0 8px 32px rgba(16,185,129,0.35)' }}
-                >
-                  <Send className="w-4 h-4" />
-                  Launch Broadcast
+                  style={{ background: 'linear-gradient(135deg, #10b981, #0891b2)', boxShadow: '0 8px 32px rgba(16,185,129,0.35)' }}>
+                  <Send className="w-4 h-4" /> Launch Broadcast
                 </button>
-                <button
-                  onClick={() => navigate('/dashboard/api-hub')}
-                  className="flex items-center justify-center gap-2 font-bold text-sm px-7 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all hover:scale-[1.02] cursor-pointer"
-                >
-                  <Key className="w-4 h-4 text-amber-400" />
-                  API Hub & Credentials
+                <button onClick={() => navigate('/dashboard/api-hub')}
+                  className="flex items-center justify-center gap-2 font-bold text-sm px-7 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all hover:scale-[1.02] cursor-pointer">
+                  <Key className="w-4 h-4 text-amber-400" /> API Hub & Credentials
                 </button>
-                <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-medium">
-                  <Lock className="w-3 h-3 text-slate-500" />
-                  SOC2 · GDPR · ISO27001 Compliant
+                <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400">
+                  <Lock className="w-3 h-3" /> SOC2 · GDPR · ISO27001 Compliant
                 </div>
               </div>
             </div>
-
-            {/* Waveform decoration */}
+            {/* Decorative waveform */}
             <div className="absolute bottom-5 right-8 flex items-end gap-[3px] opacity-15 pointer-events-none">
               {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
                 <div key={n} className={`w-1.5 rounded-full bg-emerald-300 animate-wave-${n}`} />
@@ -289,82 +271,151 @@ export function DashboardOverview() {
           </div>
         </div>
 
-        {/* ── ANIMATED STATS ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
-          <StatCard label="Omnichannel Reach" value={42890} sub="+34.2% this month" icon={Globe} gradient="bg-gradient-to-br from-emerald-500 to-teal-600" delay={0} />
-          <StatCard label="Read / Open Rate" value={91} suffix="%" sub="vs 14% email average" subColor="text-blue-600" icon={Star} gradient="bg-gradient-to-br from-blue-500 to-indigo-600" delay={80} />
-          <StatCard label="AI Meetings Booked" value={142} sub="33.8% closer rate" subColor="text-rose-600" icon={Phone} gradient="bg-gradient-to-br from-rose-500 to-red-600" delay={160} />
-          <StatCard label="Response Speed" value={18} suffix="s" sub="Zero dropped leads" subColor="text-amber-600" icon={Zap} gradient="bg-gradient-to-br from-amber-400 to-orange-500" delay={240} />
+        {/* ── ERROR BANNER ── */}
+        {error && (
+          <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-700 px-5 py-3.5 rounded-2xl text-sm font-semibold">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {error}
+            <button onClick={() => fetchStats()} className="ml-auto text-xs underline font-bold cursor-pointer">Retry</button>
+          </div>
+        )}
+
+        {/* ── LIVE STATS (all real from DB) ── */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-black text-slate-900">Live Workspace Stats</h2>
+              <p className="text-[11px] text-slate-400 mt-0.5">Real-time from your database · auto-refreshes every 60s</p>
+            </div>
+            <button
+              onClick={() => { setRefreshing(true); fetchStats(true); }}
+              className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+            <StatCard
+              label="Total Contacts"
+              value={stats?.totalContacts ?? 0}
+              sub={stats?.totalContacts === 0 ? 'Import contacts to start' : 'In your workspace'}
+              subColor={stats?.totalContacts === 0 ? 'text-slate-400' : 'text-emerald-600'}
+              icon={Users}
+              gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
+              delay={0} loading={loading}
+            />
+            <StatCard
+              label="Messages Sent"
+              value={stats?.totalSentMessages ?? 0}
+              sub={stats?.totalSentMessages === 0 ? 'Send your first broadcast' : 'By agents + AI bot'}
+              subColor={stats?.totalSentMessages === 0 ? 'text-slate-400' : 'text-blue-600'}
+              icon={Send}
+              gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
+              delay={80} loading={loading}
+            />
+            <StatCard
+              label="Open Conversations"
+              value={stats?.activeConversations ?? 0}
+              sub={stats?.activeConversations === 0 ? 'No active threads' : 'Awaiting response'}
+              subColor={stats?.activeConversations === 0 ? 'text-slate-400' : 'text-rose-600'}
+              icon={Inbox}
+              gradient="bg-gradient-to-br from-rose-500 to-red-600"
+              delay={160} loading={loading}
+            />
+            <StatCard
+              label="AI Auto-Replies"
+              value={stats?.botMessages ?? 0}
+              sub={stats?.autoReplyRules ? `${stats.autoReplyRules} rules active` : 'No rules active'}
+              subColor={stats?.botMessages === 0 ? 'text-slate-400' : 'text-purple-600'}
+              icon={Bot}
+              gradient="bg-gradient-to-br from-purple-500 to-violet-600"
+              delay={240} loading={loading}
+            />
+          </div>
         </div>
 
-        {/* ── MAIN SPLIT LAYOUT ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
+        {/* ── MAIN GRID ── */}
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
 
-          {/* Left: 4 Channel Cards */}
+          {/* Left: Channel cards */}
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-black text-slate-900 tracking-tight">Omnichannel Communication Engines</h2>
-                <p className="text-xs text-slate-500 mt-0.5">All 4 channels functional • production-ready • fully animated</p>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">Communication Channels</h2>
+                <p className="text-xs text-slate-500 mt-0.5">4 channels ready · Connect API keys to go fully live</p>
               </div>
               <span className="text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                4 / 4 Live & Operational
+                Platform Operational
               </span>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 stagger-children">
-              {channels.map((ch, i) => (
-                <ChannelCard key={i} ch={ch} delay={i * 80} navigate={navigate} />
-              ))}
+              {channels.map((ch, i) => <ChannelCard key={i} ch={ch} delay={i * 80} navigate={navigate} />)}
             </div>
           </div>
 
-          {/* Right: Activity Panel */}
+          {/* Right panel */}
           <div className="space-y-5">
 
-            {/* Live Activity Feed */}
+            {/* Live Activity Feed — real data */}
             <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
               <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-600" />
                   <span className="font-black text-slate-900 text-sm">Live Activity</span>
                 </div>
-                <span className="text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                  LIVE
-                </span>
+                {loading ? (
+                  <Skeleton className="h-5 w-10" />
+                ) : (
+                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                    {stats?.activityFeed?.length ?? 0} events
+                  </span>
+                )}
               </div>
-              <div className="divide-y divide-slate-50">
-                {liveEvents.map((e, i) => (
-                  <div key={i} className={`px-5 py-3.5 flex items-start gap-3 hover:bg-slate-50/60 transition-colors ${i === tick % liveEvents.length ? 'bg-emerald-50/40' : ''}`}>
-                    <span className="text-base shrink-0 mt-0.5">{e.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-slate-700 leading-snug">{e.text}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5 font-mono">{e.time}</p>
+              {loading ? (
+                <div className="p-4 space-y-3">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="flex gap-3">
+                      <Skeleton className="w-7 h-7 rounded-full shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-2.5 w-16" />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : !stats?.activityFeed?.length ? (
+                <EmptyActivity />
+              ) : (
+                <div className="divide-y divide-slate-50">
+                  {stats.activityFeed.map((e: any, i: number) => (
+                    <div key={i} className="px-5 py-3.5 flex items-start gap-3 hover:bg-slate-50/60 transition-colors">
+                      <span className="text-base shrink-0 mt-0.5">{activityIcons[e.type] ?? '📨'}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-semibold text-slate-700 leading-snug">{e.text}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-mono">{e.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Quick Links */}
+            {/* Quick navigation */}
             <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
               <div className="px-5 py-4 border-b border-slate-100">
                 <span className="font-black text-slate-900 text-sm">Quick Actions</span>
               </div>
               <div className="divide-y divide-slate-50">
                 {[
-                  { icon: Users, label: 'Active Contacts', value: '12,480', color: 'text-blue-600', bg: 'bg-blue-50', path: '/dashboard/contacts' },
-                  { icon: Bot, label: 'Live Automations', value: '34 Rules', color: 'text-purple-600', bg: 'bg-purple-50', path: '/dashboard/automation/ai-agent' },
-                  { icon: BarChart3, label: 'ROI Analytics', value: 'View Report', color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/dashboard/analytics' },
-                  { icon: Key, label: 'API Hub', value: '6 Keys Needed', color: 'text-amber-600', bg: 'bg-amber-50', path: '/dashboard/api-hub' },
+                  { icon: Users, label: 'Contacts & Segments', value: loading ? '...' : `${(stats?.totalContacts ?? 0).toLocaleString()} contacts`, color: 'text-blue-600', bg: 'bg-blue-50', path: '/dashboard/contacts' },
+                  { icon: Bot, label: 'AI Auto-Reply Rules', value: loading ? '...' : `${stats?.autoReplyRules ?? 0} active rules`, color: 'text-purple-600', bg: 'bg-purple-50', path: '/dashboard/automation/ai-agent' },
+                  { icon: BarChart3, label: 'ROI & Analytics', value: loading ? '...' : `${(stats?.totalMessages ?? 0).toLocaleString()} total messages`, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/dashboard/analytics' },
+                  { icon: Key, label: 'API Credentials Hub', value: 'Manage all keys', color: 'text-amber-600', bg: 'bg-amber-50', path: '/dashboard/api-hub' },
                 ].map((item, i) => (
-                  <button
-                    key={i}
-                    onClick={() => navigate(item.path)}
-                    className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
+                  <button key={i} onClick={() => navigate(item.path)}
+                    className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-xl ${item.bg} ${item.color} flex items-center justify-center`}>
                         <item.icon className="w-3.5 h-3.5" />
@@ -380,30 +431,30 @@ export function DashboardOverview() {
               </div>
             </div>
 
-            {/* Platform Health */}
-            <div className="rounded-3xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a, #1e1b4b)' }}>
-              <div className="px-5 py-4">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-black text-white">Platform Health</span>
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">99.9% Uptime</span>
-                </div>
+            {/* API Keys needed notice */}
+            <div className="rounded-3xl overflow-hidden border border-amber-200 bg-amber-50 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Key className="w-4 h-4 text-amber-600" />
+                <span className="text-sm font-black text-amber-900">API Keys Required for Full Live Mode</span>
+              </div>
+              <div className="space-y-1.5">
                 {[
-                  { label: 'WhatsApp API', pct: 100, color: '#10b981' },
-                  { label: 'Google RCS', pct: 99, color: '#6366f1' },
-                  { label: 'AI Voice (Twilio)', pct: 97, color: '#f43f5e' },
-                  { label: 'Instagram Graph', pct: 100, color: '#ec4899' },
-                ].map(bar => (
-                  <div key={bar.label} className="mb-3">
-                    <div className="flex justify-between text-[10px] font-bold mb-1">
-                      <span className="text-slate-400">{bar.label}</span>
-                      <span style={{ color: bar.color }}>{bar.pct}%</span>
-                    </div>
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${bar.pct}%`, background: bar.color, boxShadow: `0 0 8px ${bar.color}80` }} />
-                    </div>
+                  { key: 'WHATSAPP_ACCESS_TOKEN', label: 'Meta WhatsApp' },
+                  { key: 'GOOGLE_RCS_API_KEY', label: 'Google RBM' },
+                  { key: 'TWILIO_ACCOUNT_SID', label: 'Twilio Voice' },
+                  { key: 'INSTAGRAM_ACCESS_TOKEN', label: 'Instagram Graph' },
+                  { key: 'ELEVENLABS_API_KEY', label: 'ElevenLabs AI' },
+                ].map(k => (
+                  <div key={k.key} className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-amber-800">{k.label}</span>
+                    <span className="font-mono text-amber-600 bg-amber-100 px-2 py-0.5 rounded">{k.key}</span>
                   </div>
                 ))}
               </div>
+              <button onClick={() => navigate('/dashboard/api-hub')}
+                className="mt-4 w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs transition-colors cursor-pointer">
+                Open API Hub →
+              </button>
             </div>
 
           </div>

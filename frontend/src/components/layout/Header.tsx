@@ -46,11 +46,11 @@ const CHANNELS = [
 ];
 
 const TICKERS = [
-  '🔥 AI Closer booked Sarah Jenkins — Demo Thursday 11 AM',
-  '📨 WhatsApp broadcast sent to 4,850 contacts · 98.4% delivered',
-  '📷 Instagram "PRICE" comment triggered DM to @alex_founder',
-  '💬 RCS carousel delivered to 3,200 Android users · 91.4% read',
-  '🤖 AI Agent resolved 23 conversations autonomously',
+  '✅ Platform is live — connect your API keys to start sending',
+  '📨 WhatsApp, RCS, Instagram & Voice channels are ready',
+  '🤖 AI Agent auto-replies the moment contacts message in',
+  '🔑 Add API keys in the API Hub to enable all features',
+  '📊 All stats on this dashboard are real-time from your workspace',
 ];
 
 export function Header() {
