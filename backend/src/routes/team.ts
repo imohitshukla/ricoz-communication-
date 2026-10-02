@@ -7,6 +7,22 @@ export const teamRouter = Router();
 
 teamRouter.use(authenticate);
 
+// GET /api/team - Root alias returning all workspace members
+teamRouter.get('/', async (req, res) => {
+  try {
+    const workspaceId = (req as any).user.workspaceId;
+    const users = await prisma.user.findMany({
+      where: { workspaceId },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json({ members: users, total: users.length });
+  } catch (error) {
+    console.error('Error fetching team:', error);
+    res.status(500).json({ error: 'Failed to fetch team' });
+  }
+});
+
 // GET /api/team/members - Fetch all users in workspace
 teamRouter.get('/members', async (req, res) => {
   try {

@@ -560,3 +560,19 @@ whatsappRouter.post('/lists', (req, res) => {
   res.json(newList);
 });
 
+/**
+ * @route GET /api/whatsapp/settings
+ * @desc Return WhatsApp integration settings and connection status
+ */
+whatsappRouter.get('/settings', (req, res) => {
+  const connected = Boolean(GRAPH_API_TOKEN && PHONE_NUMBER_ID);
+  res.json({
+    connected,
+    mode: connected ? 'live' : 'simulation',
+    phoneNumberId: PHONE_NUMBER_ID || null,
+    webhookVerifyToken: WHATSAPP_VERIFY_TOKEN,
+    features: ['text', 'media', 'templates', 'interactive_buttons', 'forms', 'lists', 'broadcast'],
+    limits: { maxBroadcastContacts: 1000, templatesPerDay: 500 }
+  });
+});
+

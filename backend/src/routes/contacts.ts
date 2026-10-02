@@ -66,6 +66,29 @@ contactsRouter.post('/', async (req, res) => {
   }
 });
 
+// GET /api/contacts/:id - Get a single contact
+contactsRouter.get('/:id', async (req, res) => {
+  try {
+    const workspaceId = (req as any).user.workspaceId;
+    const { id } = req.params;
+
+    const contact = await prisma.contact.findFirst({
+      where: { id, workspaceId },
+      include: { tags: true }
+    });
+
+    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+
+    res.json({
+      ...contact,
+      attributes: typeof contact.attributes === 'string' ? JSON.parse(contact.attributes) : contact.attributes
+    });
+  } catch (error) {
+    console.error('Error fetching contact:', error);
+    res.status(500).json({ error: 'Failed to fetch contact' });
+  }
+});
+
 // PUT /api/contacts/:id - Update contact
 contactsRouter.put('/:id', async (req, res) => {
   try {
