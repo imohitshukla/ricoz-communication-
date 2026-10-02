@@ -38,40 +38,20 @@ export function RCSStudio() {
   const [activeTab, setActiveTab] = useState<'builder' | 'campaigns' | 'analytics'>('builder');
   const [cardType, setCardType] = useState<'standalone' | 'carousel'>('standalone');
   
-  // Card state
-  const [title, setTitle] = useState('🔥 Exclusive 40% Off VIP Pass');
-  const [description, setDescription] = useState('Unlock enterprise-grade omni-channel automation for your business with zero upfront costs. Limited slots available this quarter.');
-  const [mediaUrl, setMediaUrl] = useState('https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80');
-  const [actions, setActions] = useState<ActionChip[]>([
-    { type: 'URL', label: 'Claim 40% Discount', url: 'https://ricoz.io/pricing?code=VIP40' },
-    { type: 'DIAL', label: 'Call Specialist', phoneNumber: '+18005550199' },
-    { type: 'REPLY', label: 'Ask a Question' }
-  ]);
+  // Card state — all blank by default, user fills in their own content
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [actions, setActions] = useState<ActionChip[]>([]);
 
-  // Carousel additional cards
-  const [carouselCards, setCarouselCards] = useState<RcsCard[]>([
-    {
-      title: 'WhatsApp Automation Suite',
-      description: 'Deploy 24/7 AI agents and broadcast verified template updates to 100k+ users.',
-      mediaUrl: 'https://images.unsplash.com/photo-1611746872915-64382b5c76da?auto=format&fit=crop&w=800&q=80',
-      actions: [{ type: 'URL', label: 'Explore WhatsApp', url: 'https://ricoz.io' }]
-    },
-    {
-      title: 'AI Cold Calling & IVR',
-      description: 'Autonomous VoIP dialer with ElevenLabs voice closer persona and live transcription.',
-      mediaUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
-      actions: [{ type: 'DIAL', label: 'Listen to Demo', phoneNumber: '+18005550199' }]
-    }
-  ]);
+  // Carousel additional cards — start empty
+  const [carouselCards, setCarouselCards] = useState<RcsCard[]>([]);
 
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [sentSuccess, setSentSuccess] = useState<string | null>(null);
-  const [stats, setStats] = useState<any>({
-    totalSent: 14250,
-    readRate: '91.4%',
-    ctr: '44.8%'
-  });
+  // Stats start null — loaded from real API, not hardcoded
+  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
     fetchStats();
@@ -161,17 +141,18 @@ export function RCSStudio() {
           </div>
         )}
 
-        {/* Live Metrics Row */}
+        {/* Live Metrics Row — real from API, empty state when no data */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
           <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm">
             <div className="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-              <span>Verified Impressions</span>
+              <span>RCS Messages Sent</span>
               <Smartphone className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="text-3xl font-extrabold text-slate-900">{stats.totalSent?.toLocaleString() || '14,250'}</div>
-            <div className="text-xs text-emerald-600 font-semibold mt-1 flex items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-              99.2% Carrier Delivery Rate
+            <div className="text-3xl font-extrabold text-slate-900">
+              {stats?.totalSent != null ? stats.totalSent.toLocaleString() : '—'}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              {stats?.totalSent ? 'Via Google RBM API' : 'Connect Google RBM API key to track'}
             </div>
           </div>
 
@@ -180,8 +161,12 @@ export function RCSStudio() {
               <span>Average Read Rate</span>
               <Eye className="w-4 h-4 text-indigo-600" />
             </div>
-            <div className="text-3xl font-extrabold text-indigo-600">{stats.readRate || '91.4%'}</div>
-            <div className="text-xs text-slate-500 mt-1">vs 14% traditional email open rate</div>
+            <div className="text-3xl font-extrabold text-indigo-600">
+              {stats?.readRate ?? '—'}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              {stats?.readRate ? 'Verified by Google RBM' : 'Available after first RCS send'}
+            </div>
           </div>
 
           <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm">
@@ -189,8 +174,12 @@ export function RCSStudio() {
               <span>Rich Action Click CTR</span>
               <Zap className="w-4 h-4 text-amber-500" />
             </div>
-            <div className="text-3xl font-extrabold text-slate-900">{stats.ctr || '44.8%'}</div>
-            <div className="text-xs text-emerald-600 font-semibold mt-1">3.8x higher than plain SMS</div>
+            <div className="text-3xl font-extrabold text-slate-900">
+              {stats?.ctr ?? '—'}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              {stats?.ctr ? 'Chip click-through rate' : 'Available after first RCS send'}
+            </div>
           </div>
 
           <div className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm">
@@ -198,11 +187,11 @@ export function RCSStudio() {
               <span>Security & Identity</span>
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
             </div>
-            <div className="text-lg font-bold text-slate-900 flex items-center mt-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2"></span>
-              Google RBM Certified
+            <div className="text-sm font-bold text-slate-900 flex items-center mt-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 mr-2" />
+              API Key Required
             </div>
-            <div className="text-xs text-slate-500 mt-1">Anti-spoofing cryptographic tokens active</div>
+            <div className="text-xs text-slate-400 mt-1">Add GOOGLE_RCS_API_KEY in API Hub</div>
           </div>
         </div>
 
