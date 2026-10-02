@@ -23,7 +23,8 @@ import {
   FileText,
   ListFilter,
   Flame,
-  Sparkles
+  Sparkles,
+  Bot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -181,16 +182,19 @@ export function Sidebar() {
           </NavLink>
 
           <NavLink
-            to="/dashboard/automation/ai-agent"
+            to="/dashboard/agents"
             className={({ isActive }) => cn(
-              "flex items-center px-3 py-2 rounded-xl transition-all text-xs font-bold",
+              "flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold",
               isActive 
-                ? "text-white bg-emerald-500/15 border border-emerald-500/30 shadow-xs" 
+                ? "text-white bg-emerald-500/20 border border-emerald-400/30 shadow-xs" 
                 : "text-slate-400 hover:text-white hover:bg-slate-800/60"
             )}
           >
-            <MessageSquare className="w-4 h-4 mr-2.5 text-emerald-400" />
-            WhatsApp AI Agent
+            <div className="flex items-center">
+              <Bot className="w-4 h-4 mr-2.5 text-emerald-400" />
+              AI Agent & RAG Studio
+            </div>
+            <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-extrabold">RAG AI</span>
           </NavLink>
         </div>
 

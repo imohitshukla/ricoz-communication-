@@ -8,15 +8,36 @@ datasource db {
 }
 
 model AIAgentConfig {
-  id              String    @id @default(uuid())
-  workspaceId     String    @unique
-  workspace       Workspace @relation(fields: [workspaceId], references: [id])
-  isActive        Boolean   @default(false)
-  systemPrompt    String    @default("You are a helpful customer support agent for Ricoz.")
-  businessContext String?
-  faq             String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  workspaceId         String    @unique
+  workspace           Workspace @relation(fields: [workspaceId], references: [id])
+  isActive            Boolean   @default(false)
+  systemPrompt        String    @default("You are a helpful customer support agent for Ricoz.")
+  businessContext     String?
+  faq                 String?
+  tone                String    @default("Professional") // Professional, Friendly, Empathetic, Direct, Persuasive
+  responseLength      String    @default("concise") // concise, detailed
+  humanHandoff        Boolean   @default(true)
+  handoffKeywords     String?   @default("human,manager,agent,representative,support,person")
+  confidenceThreshold Float     @default(0.65)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model KnowledgeDocument {
+  id          String    @id @default(uuid())
+  title       String
+  sourceType  String    @default("file") // file, url, text, faq
+  fileType    String?   @default("txt")  // pdf, docx, txt, csv, md, json, web
+  fileSize    Int?      @default(0)
+  content     String
+  summary     String?
+  tokenCount  Int       @default(0)
+  status      String    @default("ready") // processing, ready, error
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Workspace {
@@ -37,6 +58,7 @@ model Workspace {
   contacts             Contact[]
   tags                 Tag[]
   aiAgentConfig        AIAgentConfig?
+  knowledgeDocs        KnowledgeDocument[]
   products             Product[]
   orders               Order[]
   slaConfig            SLAConfig?
