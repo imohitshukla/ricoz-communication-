@@ -16,25 +16,7 @@ commerceRouter.get('/products', async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Seed initial mock products if workspace has none
-    if (products.length === 0) {
-      const initialProducts = [
-        { name: 'Premium Wireless Headphones', price: 249.00, stock: 120, status: 'Active', image: 'bg-brand-primary' },
-        { name: 'Ergonomic Desk Chair', price: 399.00, stock: 45, status: 'Active', image: 'bg-brand-accent' },
-        { name: 'Mechanical Keyboard', price: 129.00, stock: 0, status: 'Out of Stock', image: 'bg-success' }
-      ];
 
-      for (const p of initialProducts) {
-        await prisma.product.create({
-          data: { ...p, workspaceId }
-        });
-      }
-
-      products = await prisma.product.findMany({
-        where: { workspaceId },
-        orderBy: { createdAt: 'desc' }
-      });
-    }
 
     res.json(products);
   } catch (error) {

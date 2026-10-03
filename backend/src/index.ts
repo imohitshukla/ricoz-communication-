@@ -105,8 +105,8 @@ app.use('/api/integrations', integrationsRouter);
 
 
 
-// Setup mock channels to emit random messages
-setupMockChannels(io);
+// Mock channel background message generator disabled for clean, genuine user data
+// setupMockChannels(io);
 
 // Socket.IO connection handler
 io.on('connection', (socket) => {

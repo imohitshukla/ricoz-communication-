@@ -44,8 +44,8 @@ export function ColdCallingHub() {
   const [activeTab, setActiveTab] = useState<'dialer' | 'campaigns' | 'recordings' | 'ivr'>('dialer');
   
   // Dialer State
-  const [phoneNumber, setPhoneNumber] = useState('+1 (415) 890-1234');
-  const [contactName, setContactName] = useState('Sarah Jenkins (VP Marketing)');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [contactName, setContactName] = useState('');
   const [callStatus, setCallStatus] = useState<'idle' | 'ringing' | 'connected' | 'ended'>('idle');
   const [isMuted, setIsMuted] = useState(false);
   const [isRecording, setIsRecording] = useState(true);
@@ -54,13 +54,16 @@ export function ColdCallingHub() {
   const [currentCallTurn, setCurrentCallTurn] = useState(0);
   const [demoBooked, setDemoBooked] = useState(false);
 
+  // Contacts for Speed Dial
+  const [workspaceContacts, setWorkspaceContacts] = useState<any[]>([]);
+
   // Campaigns State
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
-  const [campaignName, setCampaignName] = useState('Q4 Enterprise SaaS Outbound Batch');
+  const [campaignName, setCampaignName] = useState('');
   const [selectedPersona, setSelectedPersona] = useState('ElevenLabs - Rachel (Warm B2B Closer)');
   const [scriptObjective, setScriptObjective] = useState('Book 15-Minute Executive Demo');
-  const [scriptPrompt, setScriptPrompt] = useState('Pitch the Ricoz Omnichannel WhatsApp, Instagram & RCS platform. Overcome offshore team objections.');
+  const [scriptPrompt, setScriptPrompt] = useState('Pitch the Ricoz Omnichannel WhatsApp, Instagram & RCS platform. Overcome objections.');
 
   // Call Logs & Recordings
   const [calls, setCalls] = useState<Call[]>([]);
@@ -80,12 +83,14 @@ export function ColdCallingHub() {
 
   const fetchInitialData = async () => {
     try {
-      const [callsRes, campaignsRes] = await Promise.all([
+      const [callsRes, campaignsRes, contactsRes] = await Promise.all([
         api.get('/api/voice/calls'),
-        api.get('/api/voice/coldcall/campaigns')
+        api.get('/api/voice/coldcall/campaigns'),
+        api.get('/api/contacts')
       ]);
       if (Array.isArray(callsRes.data)) setCalls(callsRes.data);
       if (Array.isArray(campaignsRes.data)) setCampaigns(campaignsRes.data);
+      if (Array.isArray(contactsRes.data)) setWorkspaceContacts(contactsRes.data);
     } catch (e) {
       console.error('Failed to load voice hub data', e);
     }
@@ -272,8 +277,8 @@ export function ColdCallingHub() {
                     {callStatus === 'connected' && 'In Call • AI Voice Active'}
                     {callStatus === 'ended' && 'Call Terminated'}
                   </div>
-                  <h3 className="font-extrabold text-lg text-white mt-1 truncate">{contactName}</h3>
-                  <div className="text-sm font-mono text-slate-400 mt-0.5">{phoneNumber}</div>
+                  <h3 className="font-extrabold text-lg text-white mt-1 truncate">{contactName || (phoneNumber ? 'Direct Outbound' : 'New Call')}</h3>
+                  <div className="text-sm font-mono text-slate-400 mt-0.5">{phoneNumber || 'Type number or pick contact'}</div>
                   
                   {callStatus === 'connected' && (
                     <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold">
@@ -343,38 +348,28 @@ export function ColdCallingHub() {
                   )}
                 </div>
 
-                {/* Preset Speed Dial Picks */}
+                {/* Speed Dial Leads from Workspace Contacts */}
                 <div className="mt-4 pt-3 border-t border-slate-800/80">
-                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Speed Dial Leads:</div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setPhoneNumber('+1 (415) 890-1234');
-                        setContactName('Sarah Jenkins (TechScale)');
-                      }}
-                      className="text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-slate-300 truncate"
-                    >
-                      Sarah J.
-                    </button>
-                    <button
-                      onClick={() => {
-                        setPhoneNumber('+1 (555) 789-0123');
-                        setContactName('Marcus Vance (Vance Media)');
-                      }}
-                      className="text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-slate-300 truncate"
-                    >
-                      Marcus V.
-                    </button>
-                    <button
-                      onClick={() => {
-                        setPhoneNumber('+1 (212) 555-8833');
-                        setContactName('David Chen (CTO)');
-                      }}
-                      className="text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-slate-300 truncate"
-                    >
-                      David C.
-                    </button>
-                  </div>
+                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">Speed Dial (Workspace Contacts):</div>
+                  {workspaceContacts.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {workspaceContacts.slice(0, 4).map((c: any) => (
+                        <button
+                          key={c.id}
+                          onClick={() => {
+                            setPhoneNumber(c.phoneNumber);
+                            setContactName(c.name || c.phoneNumber);
+                          }}
+                          className="text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-slate-300 truncate max-w-[130px]"
+                          title={`${c.name || 'Contact'} (${c.phoneNumber})`}
+                        >
+                          {c.name || c.phoneNumber}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 italic">No contacts yet. Add contacts in Contacts tab to enable 1-tap dial.</p>
+                  )}
                 </div>
 
               </div>

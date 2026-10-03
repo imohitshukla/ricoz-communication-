@@ -56,53 +56,7 @@ voiceRouter.get('/calls', async (req, res) => {
       orderBy: { timestamp: 'desc' }
     });
 
-    if (calls.length === 0) {
-      // Seed high-fidelity realistic call recordings and cold-call transcripts
-      const defaultCalls = [
-        {
-          contactName: 'Sarah Jenkins',
-          phoneNumber: '+1 (415) 890-1234',
-          duration: '4m 12s',
-          sentiment: 'Positive',
-          type: 'cold_call',
-          transcript: "AI: 'Hi Sarah, this is Rachel from Ricoz. I noticed your team is scaling your customer acquisition channels on WhatsApp and Instagram, and wanted to see if reducing manual response latency by 90% is on your radar this quarter?' \n\nSarah: 'Hey Rachel, actually yes. We get tons of DMs on Instagram that slip through the cracks on weekends.' \n\nAI: 'That's exactly what our multi-channel AI receptionist solves. It automatically answers product questions, collects qualified leads, and syncs directly to your CRM in real time.' \n\nSarah: 'Can we see a live demo of how it works with our existing team?' \n\nAI: 'Absolutely! I can book a 15-minute slot for tomorrow at 2:00 PM EST with our solution architect. Does that work for you?' \n\nSarah: 'Yes, 2:00 PM works perfectly. Send the invite to sarah@techscale.io.' \n\nAI: 'Confirmed! You'll receive the calendar invite in your inbox within 2 minutes. Looking forward to speaking tomorrow!'",
-          summary: 'Cold Call Pitch: Lead confirmed pain point with weekend Instagram DMs. Demo booked for tomorrow at 2:00 PM EST. High buyer intent.',
-          audioUrl: 'https://actions.google.com/sounds/v1/telephones/telephone_ring.ogg',
-          workspaceId
-        },
-        {
-          contactName: 'Marcus Vance',
-          phoneNumber: '+1 (555) 789-0123',
-          duration: '3m 20s',
-          sentiment: 'Interested',
-          type: 'cold_call',
-          transcript: "AI: 'Hello Marcus, Rachel calling from Ricoz. Hope I didn't catch you in the middle of a meeting?' \n\nMarcus: 'I have about two minutes before my next sync, what's this regarding?' \n\nAI: 'Quick 30 seconds: we built an automated Google RCS and WhatsApp broadcast engine that gives businesses 85%+ open rates compared to 12% email rates. Are you currently doing any SMS marketing?' \n\nMarcus: 'We do standard SMS via Twilio, but it gets expensive and doesn't support interactive cards.' \n\nAI: 'RCS gives you verified green-check badges, rich carousels with clickable action buttons, and costs 40% less. I can email you our benchmark case study and pricing guide.' \n\nMarcus: 'Sure, send that over to marcus@vancemedia.com and follow up Friday.'",
-          summary: 'Cold Call: Qualified interest in transitioning from Twilio SMS to Verified RCS Rich Carousels. Follow-up email requested.',
-          audioUrl: 'https://actions.google.com/sounds/v1/telephones/telephone_ring.ogg',
-          workspaceId
-        },
-        {
-          contactName: 'David Chen',
-          phoneNumber: '+1 (212) 555-8833',
-          duration: '2m 45s',
-          sentiment: 'Positive',
-          type: 'incoming',
-          transcript: "AI: 'Thank you for calling Ricoz. How can I assist you today?' \n\nDavid: 'Hi, I need help integrating your webhook with our custom Node.js backend.' \n\nAI: 'Certainly! Our webhooks send standard JSON payloads with signature verification headers. Would you like me to SMS you the GitHub starter repo link or connect you to our developer engineering channel?' \n\nDavid: 'Please SMS me the docs and the starter repo.' \n\nAI: 'Done! Dispatched to your registered mobile number right now. Anything else I can help with?' \n\nDavid: 'That was super fast, thank you!'",
-          summary: 'Inbound IVR Support: Developer requested webhook integration starter guide. SMS dispatched automatically.',
-          audioUrl: 'https://actions.google.com/sounds/v1/telephones/telephone_ring.ogg',
-          workspaceId
-        }
-      ];
 
-      for (const c of defaultCalls) {
-        await prisma.callLog.create({ data: c });
-      }
-
-      calls = await prisma.callLog.findMany({
-        where: { workspaceId },
-        orderBy: { timestamp: 'desc' }
-      });
-    }
 
     res.json(calls);
   } catch (error) {
