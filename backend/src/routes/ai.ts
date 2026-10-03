@@ -8,7 +8,13 @@ import {
   estimateTokenCount,
   retrieveRelevantKnowledge
 } from '../ragService';
-import { generateAgentResponseDetailed } from '../aiService';
+import { 
+  generateAgentResponseDetailed,
+  generateCopilotDrafts,
+  generateThreadSummary,
+  translateMessage,
+  analyzeThreadSentiment
+} from '../aiService';
 
 const router = Router();
 
@@ -379,4 +385,86 @@ router.post('/sandbox/chat', authenticate, async (req, res) => {
   }
 });
 
+// ==========================================
+// 4. AI COPILOT FOR HUMAN AGENTS
+// ==========================================
+
+// @route   POST /api/ai/copilot/draft
+// @desc    Generate 3 distinct reply drafts for human reps using conversation context + RAG
+router.post('/copilot/draft', authenticate, async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const workspaceId = await getWorkspaceId(user.id);
+    const { incomingText, history = [], contactName = 'Customer' } = req.body;
+
+    if (!incomingText) {
+      return res.status(400).json({ error: 'incomingText is required' });
+    }
+
+    const drafts = await generateCopilotDrafts(
+      incomingText,
+      Array.isArray(history) ? history : [],
+      workspaceId || undefined,
+      contactName
+    );
+
+    res.json({ success: true, drafts });
+  } catch (error) {
+    console.error('Copilot draft error:', error);
+    res.status(500).json({ error: 'Failed to generate copilot reply drafts' });
+  }
+});
+
+// @route   POST /api/ai/copilot/summarize
+// @desc    Generate executive 2-bullet summary and next action for active chat
+router.post('/copilot/summarize', authenticate, async (req, res) => {
+  try {
+    const { messages = [] } = req.body;
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Messages array is required' });
+    }
+
+    const summary = await generateThreadSummary(messages);
+    res.json({ success: true, ...summary });
+  } catch (error) {
+    console.error('Copilot summarize error:', error);
+    res.status(500).json({ error: 'Failed to summarize conversation' });
+  }
+});
+
+// @route   POST /api/ai/copilot/translate
+// @desc    Translate message to Spanish, Hindi, French, German, Arabic, English
+router.post('/copilot/translate', authenticate, async (req, res) => {
+  try {
+    const { text, targetLanguage = 'es' } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: 'Text to translate is required' });
+    }
+
+    const translatedText = await translateMessage(text, targetLanguage);
+    res.json({ success: true, original: text, targetLanguage, translatedText });
+  } catch (error) {
+    console.error('Copilot translate error:', error);
+    res.status(500).json({ error: 'Failed to translate message' });
+  }
+});
+
+// @route   POST /api/ai/copilot/sentiment
+// @desc    Evaluate customer sentiment, buyer intent, and urgency signals
+router.post('/copilot/sentiment', authenticate, async (req, res) => {
+  try {
+    const { messages = [] } = req.body;
+    if (!Array.isArray(messages)) {
+      return res.status(400).json({ error: 'Messages array is required' });
+    }
+
+    const analysis = await analyzeThreadSentiment(messages);
+    res.json({ success: true, ...analysis });
+  } catch (error) {
+    console.error('Copilot sentiment error:', error);
+    res.status(500).json({ error: 'Failed to analyze sentiment' });
+  }
+});
+
 export const aiRouter = router;
+

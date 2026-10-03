@@ -202,3 +202,172 @@ Recent Conversation History:
     };
   }
 }
+
+/**
+ * AI Copilot: Generate 3 smart reply drafts in different tones
+ */
+export async function generateCopilotDrafts(
+  incomingText: string,
+  history: { text: string; sender: string }[] = [],
+  workspaceId?: string,
+  contactName = 'Customer'
+) {
+  let knowledgeContext = '';
+  if (workspaceId) {
+    const ragResult = await retrieveRelevantKnowledge(workspaceId, incomingText, 0.15, 2);
+    if (ragResult && ragResult.chunks && ragResult.chunks.length > 0) {
+      knowledgeContext = `\nKnowledge Context:\n${ragResult.chunks.map((c: RelevantChunk) => `[${c.title}]: ${c.excerpt}`).join('\n')}\n`;
+    }
+  }
+
+  const prompt = `You are an AI Copilot assisting a human customer service agent at Ricoz.
+Customer Name: ${contactName}
+Last Customer Message: "${incomingText}"
+Recent History: ${history.slice(-3).map(h => `${h.sender}: ${h.text}`).join(' | ')}
+${knowledgeContext}
+
+Generate 3 distinct, ready-to-send replies for the human agent:
+1. "professional": Direct, clear, professional.
+2. "friendly": Warm, engaging, empathetic.
+3. "closer": Solution-focused, asking for next steps (e.g. demo, order confirmation, or payment link).
+
+Format your response strictly as JSON:
+{
+  "professional": "...",
+  "friendly": "...",
+  "closer": "..."
+}`;
+
+  if (aiClient) {
+    try {
+      const response = await aiClient.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+      });
+      const parsed = JSON.parse(response.text?.trim() || '{}');
+      if (parsed.professional && parsed.friendly && parsed.closer) {
+        return parsed;
+      }
+    } catch (e) {
+      console.warn('Gemini copilot draft fallback triggered:', e);
+    }
+  }
+
+  // High-fidelity fallback
+  return {
+    professional: `Hello ${contactName}, thank you for reaching out. We can certainly assist with this right away. Let me confirm the exact details for you.`,
+    friendly: `Hi ${contactName}! 😊 Happy to help you with this today. What specific requirements or timeline do you have in mind?`,
+    closer: `Hi ${contactName}, we can get this setup for you immediately. Would you like me to share a 1-click payment link or book a 15-minute onboarding demo?`
+  };
+}
+
+/**
+ * AI Copilot: Generate executive 2-bullet summary and next action
+ */
+export async function generateThreadSummary(messages: { text: string; sender: string }[]) {
+  const textStream = messages.map(m => `${m.sender}: ${m.text}`).join('\n');
+  const prompt = `Summarize this customer support chat in concise business terms:
+${textStream}
+
+Respond strictly as JSON:
+{
+  "summary": "1-2 sentence executive briefing",
+  "customerGoal": "What the customer wants",
+  "recommendedAction": "Immediate next step for the sales or support rep"
+}`;
+
+  if (aiClient) {
+    try {
+      const response = await aiClient.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+      });
+      return JSON.parse(response.text?.trim() || '{}');
+    } catch (e) {
+      console.warn('Summary fallback triggered:', e);
+    }
+  }
+
+  const lastMsg = messages[messages.length - 1]?.text || 'No recent messages';
+  return {
+    summary: `Customer conversation covering ${messages.length} messages. Last interaction: "${lastMsg.slice(0, 60)}..."`,
+    customerGoal: "Product inquiry, pricing details, or account assistance.",
+    recommendedAction: "Review inquiry, share product solution, or dispatch payment checkout link."
+  };
+}
+
+/**
+ * AI Copilot: Translate text into target language
+ */
+export async function translateMessage(text: string, targetLanguage = 'es') {
+  const langNames: Record<string, string> = {
+    es: 'Spanish',
+    hi: 'Hindi',
+    fr: 'French',
+    de: 'German',
+    ar: 'Arabic',
+    en: 'English'
+  };
+
+  const targetName = langNames[targetLanguage] || 'English';
+  const prompt = `Translate the following text into natural, fluent ${targetName}. Preserve tone and formatting. Return only the translated text with no extra commentary:
+"${text}"`;
+
+  if (aiClient) {
+    try {
+      const response = await aiClient.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+      });
+      return response.text?.trim() || text;
+    } catch (e) {
+      console.warn('Translate fallback triggered:', e);
+    }
+  }
+
+  return `[${targetName} Translation]: ${text}`;
+}
+
+/**
+ * AI Copilot: Real-time sentiment and buyer intent score
+ */
+export async function analyzeThreadSentiment(messages: { text: string; sender: string }[]) {
+  const textStream = messages.slice(-5).map(m => `${m.sender}: ${m.text}`).join(' ');
+  const lower = textStream.toLowerCase();
+
+  let score = 65;
+  let sentiment = 'Neutral';
+  let buyerIntent = 'Medium';
+  const signals = [];
+
+  if (lower.includes('price') || lower.includes('cost') || lower.includes('buy') || lower.includes('discount') || lower.includes('plan')) {
+    score += 20;
+    buyerIntent = 'High';
+    signals.push('Pricing Interest');
+  }
+  if (lower.includes('demo') || lower.includes('meeting') || lower.includes('call') || lower.includes('schedule')) {
+    score += 15;
+    buyerIntent = 'High';
+    signals.push('Demo Requested');
+  }
+  if (lower.includes('great') || lower.includes('thanks') || lower.includes('awesome') || lower.includes('love') || lower.includes('yes')) {
+    sentiment = 'Positive';
+    score += 10;
+    signals.push('Positive Feedback');
+  }
+  if (lower.includes('slow') || lower.includes('broken') || lower.includes('issue') || lower.includes('error') || lower.includes('refund') || lower.includes('cancel')) {
+    sentiment = 'Urgent';
+    score -= 25;
+    signals.push('Support / Retention Issue');
+  }
+
+  return {
+    score: Math.min(100, Math.max(10, score)),
+    sentiment,
+    buyerIntent,
+    signals: signals.length > 0 ? signals : ['Standard Conversation']
+  };
+}
+

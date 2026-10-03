@@ -69,6 +69,7 @@ model Workspace {
   rcsTemplates         RcsTemplate[]
   rcsCampaigns         RcsCampaign[]
   instagramRules       InstagramRule[]
+  cascadeRules         CascadeRule[]
 }
 
 model User {
@@ -155,14 +156,22 @@ model Product {
 }
 
 model Order {
-  id          String    @id @default(uuid())
-  orderNumber String    @unique
-  amount      Float
-  status      String    @default("Pending") // Pending, Paid, Cancelled
-  contactId   String?
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(uuid())
+  orderNumber    String    @unique
+  amount         Float
+  currency       String    @default("USD")
+  status         String    @default("Pending") // Pending, Paid, Cancelled
+  customerName   String?
+  customerPhone  String?
+  items          String?   // JSON string of item name, quantity, description
+  paymentMethod  String?   // stripe, razorpay, upi, card
+  paymentUrl     String?
+  paidAt         DateTime?
+  conversationId String?
+  contactId      String?
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt      DateTime  @default(now())
 }
 
 model SLAConfig {
@@ -266,5 +275,28 @@ model InstagramRule {
   workspace    Workspace @relation(fields: [workspaceId], references: [id])
   createdAt    DateTime  @default(now())
 }
+
+model CascadeRule {
+  id                 String    @id @default(uuid())
+  name               String
+  status             String    @default("active") // active, paused
+  primaryChannel     String    @default("rcs")    // rcs, whatsapp
+  primaryCondition   String    @default("undelivered_or_unread")
+  secondaryChannel   String    @default("whatsapp") // whatsapp, sms
+  secondaryCondition String    @default("failed")
+  tertiaryChannel    String    @default("voice") // voice, email, sms
+  timeoutMinutes     Int       @default(5)
+  retryCount         Int       @default(2)
+  messageText        String?   @default("Hi {{name}}, here is your urgent Ricoz update.")
+  statsSent          Int       @default(0)
+  statsPrimary       Int       @default(0)
+  statsSecondary     Int       @default(0)
+  statsTertiary      Int       @default(0)
+  workspaceId        String
+  workspace          Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
 
 

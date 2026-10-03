@@ -13,7 +13,7 @@ type Product = {
 
 export function Commerce() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [metrics, setMetrics] = useState({ totalSales: 12450, pendingCount: 24, recoveredCarts: 3200 });
+  const [metrics, setMetrics] = useState({ totalSales: 0, pendingCount: 0, recoveredCarts: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isLinkOpen, setIsLinkOpen] = useState(false);

@@ -39,6 +39,7 @@ import { SoloPage } from '@/pages/Public/Solo';
 import { PublicIntegrations } from '@/pages/Public/PublicIntegrations';
 import { PartnerProgram } from '@/pages/Public/PartnerProgram';
 import { LiveDemo } from '@/pages/Public/LiveDemo';
+import { PaymentCheckout } from '@/pages/Public/PaymentCheckout';
 
 import { RCSStudio } from './pages/RCS/RCSStudio';
 import { ColdCallingHub } from './pages/Voice/ColdCallingHub';
@@ -65,6 +66,7 @@ function App() {
         <Route path="/whatsapp-voice-calling" element={<VoiceCallingPage />} />
         <Route path="/login" element={<Login />} />
       </Route>
+      <Route path="/pay/:orderNumber" element={<PaymentCheckout />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<ProtectedRoute />}>
