@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "Ricoz Communication Monorepo",
   "scripts": {
+    "build": "cd backend && npm install --include=dev && npx prisma generate",
+    "start": "cd backend && npx prisma generate && npx tsx src/index.ts",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npx ts-node src/index.ts",
+    "dev:backend": "cd backend && npx tsx src/index.ts",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "install:all": "cd frontend && npm install && cd ../backend && npm install"
   },
