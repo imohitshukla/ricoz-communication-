@@ -47,6 +47,7 @@ import { InstagramStudio } from './pages/Instagram/InstagramStudio';
 import { WhatsAppForms } from './pages/Automation/WhatsAppForms';
 import { WhatsAppLists } from './pages/Automation/WhatsAppLists';
 import { APIHub } from './pages/Settings/APIHub';
+import { EmailMarketing } from './pages/Email/EmailMarketing';
 
 function App() {
   return (
@@ -98,6 +99,7 @@ function App() {
           <Route path="integrations" element={<Integrations />} />
           <Route path="settings" element={<Settings />} />
           <Route path="billing" element={<Billing />} />
+          <Route path="email" element={<EmailMarketing />} />
           <Route path="*" element={<Navigate to="overview" replace />} />
         </Route>
       </Route>

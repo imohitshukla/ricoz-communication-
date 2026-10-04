@@ -42,6 +42,7 @@ export const api = {
   get: async (url: string) => wrapResponse((await axiosInstance.get(normalizePath(url))).data),
   post: async (url: string, data?: any) => wrapResponse((await axiosInstance.post(normalizePath(url), data)).data),
   put: async (url: string, data?: any) => wrapResponse((await axiosInstance.put(normalizePath(url), data)).data),
+  patch: async (url: string, data?: any) => wrapResponse((await axiosInstance.patch(normalizePath(url), data)).data),
   delete: async (url: string) => wrapResponse((await axiosInstance.delete(normalizePath(url))).data),
 };
 

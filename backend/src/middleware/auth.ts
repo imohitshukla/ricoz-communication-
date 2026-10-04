@@ -19,6 +19,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
     if (decoded.workspaceId) {
       (req as any).user = { id: decoded.userId, workspaceId: decoded.workspaceId };
+      (req as any).workspaceId = decoded.workspaceId;
       return next();
     }
 
@@ -34,6 +35,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       workspaceId: dbUser.workspaceId,
       role: dbUser.role
     };
+    (req as any).workspaceId = dbUser.workspaceId;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Token is not valid' });

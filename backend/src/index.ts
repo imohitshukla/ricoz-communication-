@@ -63,6 +63,7 @@ import { rcsRouter } from './routes/rcs';
 import { instagramRouter } from './routes/instagram';
 import { integrationsRouter } from './routes/integrations';
 import authRoutes from './routes/auth';
+import { emailRouter } from './routes/email';
 import { testSmtpConnection } from './services/emailService';
 
 
@@ -102,6 +103,8 @@ app.use('/api/media', mediaRouter);
 app.use('/api/rcs', rcsRouter);
 app.use('/api/instagram', instagramRouter);
 app.use('/api/integrations', integrationsRouter);
+app.use('/api/email', emailRouter);
+
 
 
 

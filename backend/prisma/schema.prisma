@@ -70,6 +70,9 @@ model Workspace {
   rcsCampaigns         RcsCampaign[]
   instagramRules       InstagramRule[]
   cascadeRules         CascadeRule[]
+  emailCampaigns       EmailCampaign[]
+  emailTemplates       EmailTemplate[]
+  emailContacts        EmailContact[]
 }
 
 model User {
@@ -298,5 +301,58 @@ model CascadeRule {
   updatedAt          DateTime  @updatedAt
 }
 
+model EmailTemplate {
+  id          String          @id @default(uuid())
+  name        String
+  subject     String
+  htmlBody    String          // Full HTML email body
+  previewText String?         // Shown in inbox preview
+  category    String          @default("Marketing") // Marketing, Transactional, Newsletter, Promotional
+  status      String          @default("draft")   // draft, published
+  workspaceId String
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id])
+  campaigns   EmailCampaign[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
 
+model EmailCampaign {
+  id              String         @id @default(uuid())
+  name            String
+  subject         String
+  fromName        String         @default("Ricoz Communication")
+  fromEmail       String         @default("hello@ricoz.io")
+  replyTo         String?
+  status          String         @default("draft")     // draft, scheduled, sending, sent, paused
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  totalRecipients Int            @default(0)
+  delivered       Int            @default(0)
+  opened          Int            @default(0)
+  clicked         Int            @default(0)
+  bounced         Int            @default(0)
+  unsubscribed    Int            @default(0)
+  templateId      String?
+  template        EmailTemplate? @relation(fields: [templateId], references: [id])
+  audienceTag     String?        // Filter contacts by tag
+  htmlBody        String         // Actual email HTML content
+  workspaceId     String
+  workspace       Workspace      @relation(fields: [workspaceId], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
 
+model EmailContact {
+  id          String    @id @default(uuid())
+  email       String
+  name        String?
+  tags        String?   @default("[]")
+  status      String    @default("subscribed")  // subscribed, unsubscribed, bounced, cleaned
+  source      String    @default("manual")       // manual, import, whatsapp_sync, api
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, email])
+}

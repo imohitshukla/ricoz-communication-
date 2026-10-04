@@ -1,4 +1,4 @@
-import { Bell, Settings, ChevronDown, LogOut, Key, Phone, Camera, ShieldCheck, MessageSquare, Flame } from 'lucide-react';
+import { Bell, Settings, ChevronDown, LogOut, Key, Phone, Camera, ShieldCheck, MessageSquare, Flame, Mail } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -43,11 +43,21 @@ const CHANNELS = [
     border: 'border-rose-200',
     path: '/dashboard/voice',
   },
+  {
+    label: 'Email',
+    icon: Mail,
+    dot: 'bg-purple-500',
+    text: 'text-purple-800',
+    bg: 'bg-purple-50',
+    hoverBg: 'hover:bg-purple-100',
+    border: 'border-purple-200',
+    path: '/dashboard/email',
+  },
 ];
 
 const TICKERS = [
   '✅ Platform is live — connect your API keys to start sending',
-  '📨 WhatsApp, RCS, Instagram & Voice channels are ready',
+  '📨 WhatsApp, RCS, Instagram, AI Voice & Email marketing ready',
   '🤖 AI Agent auto-replies the moment contacts message in',
   '🔑 Add API keys in the API Hub to enable all features',
   '📊 All stats on this dashboard are real-time from your workspace',

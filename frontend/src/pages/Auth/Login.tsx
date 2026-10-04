@@ -59,9 +59,14 @@ export function Login() {
 
     try {
       const response = await api.post('/api/auth/login', { email, password });
+      const token = response.token || response.data?.token;
+      const user = response.user || response.data?.user;
       
-      login(response.data.token, response.data.user);
-      navigate('/dashboard/overview');
+      if (token && user) {
+        login(token, user);
+        navigate('/dashboard/overview');
+        return;
+      }
     } catch (err: any) {
       console.warn('Backend login endpoint offline/unreachable, checking reviewer credentials fallback:', err);
       // Support instant demo login for admin / reviewer credentials

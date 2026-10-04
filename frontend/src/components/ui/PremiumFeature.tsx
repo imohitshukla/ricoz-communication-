@@ -24,7 +24,7 @@ export function PremiumFeature({ title, description, icon }: PremiumFeatureProps
             {description}
           </p>
           <button className="bg-white text-[#00a688] font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center space-x-2">
-            <span>Join the Waitlist</span>
+            <span>Upgrade to Enterprise Plan</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -48,8 +48,8 @@ export function PremiumFeature({ title, description, icon }: PremiumFeatureProps
       </div>
 
       <div className="mt-auto pt-8 border-t border-gray-200">
-        <p className="text-center text-sm text-gray-400 font-medium">
-          This feature is currently in active development. Expected Q4 2026.
+        <p className="text-center text-sm text-gray-500 font-medium">
+          Available on Enterprise and Custom dedicated workspace plans.
         </p>
       </div>
     </div>
