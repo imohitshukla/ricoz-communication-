@@ -263,7 +263,6 @@ export function DashboardOverview() {
                     </span>
                     LIVE · Omnichannel AI Platform
                   </span>
-                  <span className="px-3 py-1 rounded-full bg-white/8 border border-white/15 text-slate-300 text-xs font-bold">VC Ready · Enterprise Grade</span>
                 </div>
                 <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-3">
                   Welcome back 👋
