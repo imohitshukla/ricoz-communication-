@@ -14,10 +14,22 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Helper to map plan names to Stripe Price IDs
 // In production, these should come from process.env or be passed from the frontend
-const PLAN_PRICE_IDS: Record<string, string> = {
-  'Starter': process.env.STRIPE_PRICE_STARTER || 'price_placeholder_starter',
-  'Growth': process.env.STRIPE_PRICE_GROWTH || 'price_placeholder_growth',
-  'Advanced': process.env.STRIPE_PRICE_ADVANCED || 'price_placeholder_advanced',
+const PLAN_PRICE_IDS: Record<string, Record<string, string>> = {
+  'Starter': {
+    'Monthly': process.env.STRIPE_PRICE_STARTER_MONTHLY || 'price_placeholder_starter_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_STARTER_QUARTERLY || 'price_placeholder_starter_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_STARTER_YEARLY || 'price_placeholder_starter_yearly',
+  },
+  'Growth': {
+    'Monthly': process.env.STRIPE_PRICE_GROWTH_MONTHLY || 'price_placeholder_growth_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_GROWTH_QUARTERLY || 'price_placeholder_growth_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_GROWTH_YEARLY || 'price_placeholder_growth_yearly',
+  },
+  'Advanced': {
+    'Monthly': process.env.STRIPE_PRICE_ADVANCED_MONTHLY || 'price_placeholder_advanced_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_ADVANCED_QUARTERLY || 'price_placeholder_advanced_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_ADVANCED_YEARLY || 'price_placeholder_advanced_yearly',
+  },
 };
 
 // @route   GET /api/billing
@@ -84,7 +96,7 @@ router.get('/subscription', authenticate, async (req, res) => {
 // @desc    Create a Stripe Checkout session for a specific plan
 router.post('/create-checkout-session', authenticate, async (req, res) => {
 
-  const { planName } = req.body;
+  const { planName, billingCycle = 'Quarterly' } = req.body;
   
   try {
     const user = (req as any).user;
@@ -95,8 +107,8 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
     
     if (!dbUser) return res.status(404).json({ error: 'User not found' });
     
-    const priceId = PLAN_PRICE_IDS[planName];
-    if (!priceId) return res.status(400).json({ error: 'Invalid plan selected' });
+    const priceId = PLAN_PRICE_IDS[planName]?.[billingCycle];
+    if (!priceId) return res.status(400).json({ error: 'Invalid plan or billing cycle selected' });
 
     let stripeCustomerId = dbUser.workspace.stripeCustomerId;
 
@@ -138,7 +150,8 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
         cancel_url: `${FRONTEND_URL}/billing?canceled=true`,
         metadata: {
           workspaceId: dbUser.workspaceId,
-          planTier: planName
+          planTier: planName,
+          billingCycle: billingCycle
         }
       });
       

@@ -11,6 +11,24 @@ export function Pricing() {
   const [billingCycle, setBillingCycle] = useState('Quarterly');
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
+  const PLAN_PRICES = {
+    Starter: { monthly: 1299, quarterly: 3499, yearly: 12499 },
+    Growth: { monthly: 2799, quarterly: 7699, yearly: 26899 },
+    Advanced: { monthly: 3899, quarterly: 10499, yearly: 37499 },
+  };
+
+  const getPrice = (plan: 'Starter' | 'Growth' | 'Advanced') => {
+    if (billingCycle === 'Monthly') return PLAN_PRICES[plan].monthly.toLocaleString('en-IN');
+    if (billingCycle === 'Quarterly') return PLAN_PRICES[plan].quarterly.toLocaleString('en-IN');
+    return PLAN_PRICES[plan].yearly.toLocaleString('en-IN');
+  };
+
+  const getPeriod = () => {
+    if (billingCycle === 'Monthly') return '/mo';
+    if (billingCycle === 'Quarterly') return '/qtr';
+    return '/yr';
+  };
+
   const handleCheckout = async (planName: string) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -22,7 +40,7 @@ export function Pricing() {
     setIsLoading(planName);
     try {
       // Call backend to create stripe checkout session
-      const response = await api.post('/api/billing/create-checkout-session', { planName });
+      const response = await api.post('/api/billing/create-checkout-session', { planName, billingCycle });
       if (response.data?.url) {
         window.location.href = response.data.url;
       }
@@ -110,7 +128,7 @@ export function Pricing() {
                   <td className="p-6 border-b border-r w-[20%] align-top">
                     <div className="text-[#ff9900] font-bold mb-2">Starter</div>
                     <div className="text-3xl font-black text-gray-900">
-                      ₹3,499<span className="text-xs font-normal text-gray-500">/qtr (+taxes)</span>
+                      ₹{getPrice('Starter')}<span className="text-xs font-normal text-gray-500">{getPeriod()} (+taxes)</span>
                     </div>
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900">
                       Unlimited agents (Owner Roles)
@@ -124,7 +142,7 @@ export function Pricing() {
                   <td className="p-6 border-b border-r w-[20%] align-top">
                     <div className="text-[#00a688] font-bold mb-2">Growth</div>
                     <div className="text-3xl font-black text-gray-900">
-                      ₹7,699<span className="text-xs font-normal text-gray-500">/qtr (+taxes)</span>
+                      ₹{getPrice('Growth')}<span className="text-xs font-normal text-gray-500">{getPeriod()} (+taxes)</span>
                     </div>
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900 flex items-center">
                       Unlimited agents (All Roles) <Info className="w-3 h-3 ml-1 text-gray-400" />
@@ -138,7 +156,7 @@ export function Pricing() {
                   <td className="p-6 border-b border-r w-[20%] align-top">
                     <div className="text-[#0088cc] font-bold mb-2">Advanced</div>
                     <div className="text-3xl font-black text-gray-900">
-                      ₹10,499<span className="text-xs font-normal text-gray-500">/qtr (+taxes)</span>
+                      ₹{getPrice('Advanced')}<span className="text-xs font-normal text-gray-500">{getPeriod()} (+taxes)</span>
                     </div>
                     <div className="mt-4 mb-4 text-xs font-bold text-gray-900 flex items-center">
                       Unlimited agents (All Roles) <Info className="w-3 h-3 ml-1 text-gray-400" />
