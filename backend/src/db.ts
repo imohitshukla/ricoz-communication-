@@ -1,4 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:qrgzOLMITztpNZLsvWeCkOsMJqtzPzfA@switchyard.proxy.rlwy.net:49350/railway';
 
 // Singleton: prevents multiple PrismaClient instances from being created
 // which would exhaust the DB connection pool on Railway free tier.
@@ -10,11 +14,13 @@ declare global {
 export const prisma =
   global.__prisma ??
   new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
+    datasources: dbUrl
+      ? {
+          db: {
+            url: dbUrl,
+          },
+        }
+      : undefined,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 

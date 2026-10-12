@@ -1,11 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import { prisma } from './db';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
-dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
