@@ -4,8 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { setupMockChannels } from './mockChannels';
-
+import path from 'path';
 dotenv.config();
 
 const app = express();
@@ -26,8 +25,6 @@ export const io = new Server(httpServer, {
   }
 });
 
-import path from 'path';
-
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc.)
@@ -43,7 +40,12 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ 
+  limit: '50mb',
+  verify: (req, res, buf) => {
+    (req as any).rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -62,6 +64,7 @@ import { mediaRouter } from './routes/media';
 import { rcsRouter } from './routes/rcs';
 import { instagramRouter } from './routes/instagram';
 import { integrationsRouter } from './routes/integrations';
+import { smsRouter } from './routes/sms';
 import authRoutes from './routes/auth';
 import { emailRouter } from './routes/email';
 import { testSmtpConnection } from './services/emailService';
@@ -75,8 +78,9 @@ app.get('/health', (req, res) => {
 // Version endpoint
 app.get('/api/version', (_req, res) => {
   res.json({
-    version: '3.3.0',
-    ragStudio: true,
+    version: '4.0.0',
+    production: true,
+    channels: ['whatsapp', 'instagram', 'sms', 'voice', 'rcs', 'email'],
     deployedAt: new Date().toISOString()
   });
 });
@@ -103,13 +107,11 @@ app.use('/api/media', mediaRouter);
 app.use('/api/rcs', rcsRouter);
 app.use('/api/instagram', instagramRouter);
 app.use('/api/integrations', integrationsRouter);
+app.use('/api/sms', smsRouter);
 app.use('/api/email', emailRouter);
 
 
 
-
-// Mock channel background message generator disabled for clean, genuine user data
-// setupMockChannels(io);
 
 // Socket.IO connection handler
 io.on('connection', (socket) => {
@@ -168,5 +170,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Ricoz Communication API v4.0.0 — Production Mode`);
+  console.log(`   Server running on port ${PORT}`);
+  console.log(`   Channels: WhatsApp | Instagram | SMS | Voice | RCS | Email`);
 });

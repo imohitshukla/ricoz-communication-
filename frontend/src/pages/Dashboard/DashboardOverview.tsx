@@ -236,6 +236,30 @@ export function DashboardOverview() {
       btnLabel: 'Open Email Studio', btnPath: '/dashboard/email',
       secondary: null,
     },
+    {
+      icon: Inbox, iconBg: 'bg-gradient-to-br from-orange-500 to-amber-600',
+      badge: 'bg-orange-50 text-orange-700 border-orange-200',
+      dot: 'bg-orange-500', badgeLabel: 'Internal Helpdesk',
+      title: 'Advanced Ticketing & SLAs',
+      desc: 'Convert unresolved chats into trackable support tickets. Monitor resolution times and ensure compliance with Service Level Agreements.',
+      checkColor: 'text-orange-500',
+      features: ['Auto-Ticket Creation', 'SLA Tracking', 'Agent Collision UI', 'Lead Sentiment Scores'],
+      btnGradient: 'bg-gradient-to-r from-orange-500 to-amber-600',
+      btnLabel: 'Open Helpdesk', btnPath: '/dashboard/tickets',
+      secondary: null,
+    },
+    {
+      icon: Bot, iconBg: 'bg-gradient-to-br from-indigo-500 to-cyan-600',
+      badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      dot: 'bg-indigo-500', badgeLabel: 'RAG Model Pipeline',
+      title: 'AI Knowledge Base & Training',
+      desc: 'Upload PDFs, product catalogs, and URLs. Train your AI agents to answer customer queries accurately without hallucinating.',
+      checkColor: 'text-indigo-500',
+      features: ['Vector Search (RAG)', 'PDF / URL Uploads', 'Context-Aware AI', 'Confidence Scoring'],
+      btnGradient: 'bg-gradient-to-r from-indigo-500 to-cyan-600',
+      btnLabel: 'Train AI Agents', btnPath: '/dashboard/automation/ai-agent',
+      secondary: null,
+    },
   ];
 
   const activityIcons: Record<string, string> = {
@@ -375,8 +399,8 @@ export function DashboardOverview() {
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-black text-slate-900 tracking-tight">Communication Channels</h2>
-                <p className="text-xs text-slate-500 mt-0.5">4 channels ready · Connect API keys to go fully live</p>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">Omnichannel Hubs & Advanced Engines</h2>
+                <p className="text-xs text-slate-500 mt-0.5">6 core engines ready · Connect API keys to go fully live</p>
               </div>
               <span className="text-[10px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

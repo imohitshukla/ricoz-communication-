@@ -22,10 +22,12 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.0.13",
     "pdf-parse": "^2.4.5",
+    "prisma": "^5.22.0",
+    "resend": "^6.32.1",
     "socket.io": "^4.8.3",
     "stripe": "^22.6.2",
     "tsx": "^4.19.0",
-    "prisma": "^5.22.0",
+    "twilio": "^6.1.2",
     "typescript": "^5.7.2"
   },
   "devDependencies": {

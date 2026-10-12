@@ -1,9 +1,31 @@
-import { motion } from 'framer-motion';
-import { ArrowRight, Handshake, TrendingUp, DollarSign, Award, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Handshake, TrendingUp, DollarSign, Award, CheckCircle2, X } from 'lucide-react';
 
 export function PartnerProgram() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', company: '', website: '', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    await new Promise(r => setTimeout(r, 1500));
+    
+    setIsSubmitting(false);
+    setIsSuccess(true);
+    setTimeout(() => {
+      setIsModalOpen(false);
+      setIsSuccess(false);
+      setFormData({ name: '', email: '', company: '', website: '', message: '' });
+    }, 3000);
+  };
   return (
-    <div className="pt-32 pb-24 bg-white min-h-screen">
+    <>
+      <div className="pt-32 pb-24 bg-white min-h-screen">
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-6 mb-24">
         <div className="flex flex-col lg:flex-row items-center gap-12">
@@ -38,7 +60,7 @@ export function PartnerProgram() {
               transition={{ delay: 0.3 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <button className="bg-[#00a688] text-white px-8 py-4 rounded-full font-bold hover:bg-[#008c73] transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-[#00a688]/30 text-lg">
+              <button onClick={() => setIsModalOpen(true)} className="bg-[#00a688] text-white px-8 py-4 rounded-full font-bold hover:bg-[#008c73] transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-[#00a688]/30 text-lg">
                 Apply Now
               </button>
             </motion.div>
@@ -106,5 +128,111 @@ export function PartnerProgram() {
         </div>
       </div>
     </div>
+
+      {/* Application Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">Partner Application</h3>
+                  <p className="text-sm text-gray-500 mt-1">Join the Ricoz Partner Network</p>
+                </div>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow-sm">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto">
+                {isSuccess ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">Application Received!</h4>
+                    <p className="text-gray-600">Thanks for applying. Our partner team will review your details and get back to you within 24-48 hours.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00a688]/50 focus:border-[#00a688] transition-all" 
+                        placeholder="John Doe" 
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Work Email</label>
+                      <input 
+                        required 
+                        type="email" 
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00a688]/50 focus:border-[#00a688] transition-all" 
+                        placeholder="john@youragency.com" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Company Name</label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={formData.company}
+                        onChange={(e) => setFormData({...formData, company: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00a688]/50 focus:border-[#00a688] transition-all" 
+                        placeholder="Acme Marketing" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Website</label>
+                      <input 
+                        type="url" 
+                        value={formData.website}
+                        onChange={(e) => setFormData({...formData, website: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00a688]/50 focus:border-[#00a688] transition-all" 
+                        placeholder="https://youragency.com" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Why do you want to partner?</label>
+                      <textarea 
+                        required 
+                        rows={3}
+                        value={formData.message}
+                        onChange={(e) => setFormData({...formData, message: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00a688]/50 focus:border-[#00a688] transition-all resize-none" 
+                        placeholder="Tell us about your client base..." 
+                      />
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="w-full py-3 bg-[#00a688] text-white font-bold rounded-lg hover:bg-[#008c73] transition-colors disabled:opacity-70 mt-4 flex justify-center items-center"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

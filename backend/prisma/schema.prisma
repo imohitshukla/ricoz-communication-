@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:dev.db"
 }
 
 model AIAgentConfig {
@@ -73,7 +73,34 @@ model Workspace {
   emailCampaigns       EmailCampaign[]
   emailTemplates       EmailTemplate[]
   emailContacts        EmailContact[]
+  tickets              Ticket[]
+  webhooks             Webhook[]
+  flowBuilders         FlowBuilder[]
+  storeIntegrations    StoreIntegration[]
+  channelIntegrations  ChannelIntegration[]
 }
+
+model ChannelIntegration {
+  id                        String    @id @default(uuid())
+  workspaceId               String
+  workspace                 Workspace @relation(fields: [workspaceId], references: [id])
+  provider                  String    // "whatsapp", "instagram", "facebook"
+  
+  // Meta Specific Fields
+  accessToken               String?
+  phoneNumberId             String?   // For WhatsApp
+  wabaId                    String?   // WhatsApp Business Account ID
+  instagramAccountId        String?   // For Instagram
+  facebookPageId            String?   // For FB Messenger
+  appSecret                 String?   // For webhook signature verification
+  
+  isActive                  Boolean   @default(true)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([workspaceId, provider])
+}
+
 
 model User {
   id          String    @id @default(uuid())
@@ -121,6 +148,7 @@ model Conversation {
   messages    Message[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  agentCollision AgentCollision? // optional back relation
 }
 
 model Message {
@@ -134,6 +162,7 @@ model Message {
   mediaUrl       String?
   metadata       String?      // Storing JSON string for buttons, cards, action payload
   timestamp      DateTime     @default(now())
+   sentimentScore SentimentScore? // back relation
 }
 
 model AutoReplyRule {
@@ -353,6 +382,85 @@ model EmailContact {
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+model StoreIntegration {
+  id          String   @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  provider    String   // shopify, woocommerce
+  apiKey      String   @default("")
+  shopDomain  String   // e.g. myshop.myshopify.com
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 
-  @@unique([workspaceId, email])
+model SentimentScore {
+  id            String   @id @default(uuid())
+  messageId     String   @unique
+  message       Message @relation(fields: [messageId], references: [id])
+  score         Float    @default(0)
+  sentiment     String   @default("neutral") // positive, neutral, negative, urgent
+  createdAt     DateTime @default(now())
+}
+
+model FlowBuilder {
+  id            String   @id @default(uuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  name          String
+  definition    String   // JSON representation of flow nodes & edges
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AgentCollision {
+  id            String   @id @default(uuid())
+  conversationId String @unique
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  lockedBy      String?   // userId of agent currently typing
+  lockedAt      DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model EmailLog {
+  id            String   @id @default(uuid())
+  toEmail       String
+  subject       String
+  templateId    String?
+  status        String   @default("queued") // queued, sent, failed
+  errorMessage  String?
+  sentAt        DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model Ticket {
+  id             String    @id @default(uuid())
+  ticketNumber   String    @unique
+  subject        String
+  description    String?
+  status         String    @default("open") // open, pending, resolved, closed
+  priority       String    @default("medium") // low, medium, high, urgent
+  assignedTo     String?   // User ID or name
+  contactId      String?
+  conversationId String?
+  slaStatus      String    @default("on_track") // on_track, breached, at_risk
+  resolutionTime Int?      // in minutes
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Webhook {
+  id          String    @id @default(uuid())
+  name        String
+  url         String
+  events      String    @default("all") // JSON array of event names
+  isActive    Boolean   @default(true)
+  secret      String?
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

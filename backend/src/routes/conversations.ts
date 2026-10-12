@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { prisma } from '../db';
 import { authenticate } from '../middleware/auth';
+import axios from 'axios';
+import { sendSms } from '../services/twilioService';
+import { sendRcsTextMessage } from '../services/rcsService';
+import { sendEmail } from '../services/emailService';
 
 const router = Router();
 
@@ -119,12 +123,88 @@ router.post('/:id/messages', async (req, res) => {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
+    const channel = conversation.channel;
+    
+    // Find integration credentials for the specific channel
+    const integration = await prisma.channelIntegration.findFirst({
+      where: { workspaceId, provider: channel }
+    });
+
+    let externalStatus = 'sent';
+    
+    try {
+      if (channel === 'whatsapp') {
+        const token = integration?.accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+        const phoneId = integration?.phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+        if (token && phoneId) {
+          await axios.post(
+            `https://graph.facebook.com/v20.0/${phoneId}/messages`,
+            {
+              messaging_product: 'whatsapp',
+              recipient_type: 'individual',
+              to: conversation.contact.phoneNumber.replace(/[^0-9]/g, ''),
+              type: 'text',
+              text: { preview_url: false, body: text }
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+        }
+      } else if (channel === 'instagram') {
+        const token = integration?.accessToken || process.env.INSTAGRAM_ACCESS_TOKEN;
+        const accountId = integration?.instagramAccountId || process.env.INSTAGRAM_ACCOUNT_ID;
+        const recipientId = conversation.contact.phoneNumber.startsWith('ig_') 
+          ? conversation.contact.phoneNumber.split('_')[1] 
+          : conversation.contact.phoneNumber;
+          
+        if (token && accountId && recipientId) {
+          await axios.post(
+            `https://graph.facebook.com/v20.0/${accountId}/messages`,
+            {
+              recipient: { id: recipientId },
+              message: { text }
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+        }
+      } else if (channel === 'sms') {
+        const res = await sendSms({
+          to: conversation.contact.phoneNumber,
+          body: text,
+        });
+        if (!res.success) {
+          console.warn('Twilio SMS outbound send warning:', res.error);
+        }
+      } else if (channel === 'rcs') {
+        const res = await sendRcsTextMessage({
+          phoneNumber: conversation.contact.phoneNumber,
+          text,
+        });
+        if (!res.success) {
+          console.warn('RCS outbound send warning:', res.error);
+        }
+      } else if (channel === 'email') {
+        await sendEmail({
+          to: conversation.contact.phoneNumber,
+          subject: 'Support Response — Ricoz',
+          html: `<div style="font-family:sans-serif;padding:16px;"><p>${text}</p></div>`,
+        });
+      }
+    } catch (err: any) {
+      console.error(`Live channel send error (${channel}):`, err.response?.data || err.message);
+      externalStatus = 'failed';
+    }
+
     const message = await prisma.message.create({
       data: {
         conversationId: id,
         text,
         sender,
-        status: 'sent'
+        status: externalStatus,
+        channel: channel
       }
     });
 

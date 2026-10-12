@@ -29,17 +29,26 @@ router.post('/contacts', authenticate, async (req: any, res) => {
   const { email, name, tags, source } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
   try {
-    const contact = await prisma.emailContact.upsert({
-      where: { workspaceId_email: { workspaceId: req.workspaceId, email } },
-      update: { name, tags: JSON.stringify(tags || []), source: source || 'manual' },
-      create: {
-        email,
-        name,
-        tags: JSON.stringify(tags || []),
-        source: source || 'manual',
-        workspaceId: req.workspaceId
-      }
+    const existing = await prisma.emailContact.findFirst({
+      where: { workspaceId: req.workspaceId, email }
     });
+    let contact;
+    if (existing) {
+      contact = await prisma.emailContact.update({
+        where: { id: existing.id },
+        data: { name, tags: JSON.stringify(tags || []), source: source || 'manual' }
+      });
+    } else {
+      contact = await prisma.emailContact.create({
+        data: {
+          email,
+          name,
+          tags: JSON.stringify(tags || []),
+          source: source || 'manual',
+          workspaceId: req.workspaceId
+        }
+      });
+    }
     res.status(201).json(contact);
   } catch (e) {
     console.error(e);
@@ -56,17 +65,25 @@ router.post('/contacts/bulk-import', authenticate, async (req: any, res) => {
     let skipped = 0;
     for (const c of contacts) {
       if (!c.email || !c.email.includes('@')) { skipped++; continue; }
-      await prisma.emailContact.upsert({
-        where: { workspaceId_email: { workspaceId: req.workspaceId, email: c.email } },
-        update: { name: c.name, tags: JSON.stringify(c.tags || []), source: 'import' },
-        create: {
-          email: c.email,
-          name: c.name,
-          tags: JSON.stringify(c.tags || []),
-          source: 'import',
-          workspaceId: req.workspaceId
-        }
+      const existing = await prisma.emailContact.findFirst({
+        where: { workspaceId: req.workspaceId, email: c.email }
       });
+      if (existing) {
+        await prisma.emailContact.update({
+          where: { id: existing.id },
+          data: { name: c.name, tags: JSON.stringify(c.tags || []), source: 'import' }
+        });
+      } else {
+        await prisma.emailContact.create({
+          data: {
+            email: c.email,
+            name: c.name,
+            tags: JSON.stringify(c.tags || []),
+            source: 'import',
+            workspaceId: req.workspaceId
+          }
+        });
+      }
       imported++;
     }
     res.json({ imported, skipped, total: contacts.length });

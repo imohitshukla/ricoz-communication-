@@ -116,6 +116,22 @@ export function ColdCallingHub() {
     // Play ringing tone
     soundFx.startRinging();
 
+    // Trigger live Twilio call in background if configured
+    try {
+      api.post('/api/voice/dial', {
+        phoneNumber,
+        contactName,
+        scriptGoal: scriptObjective,
+        useAiVoice: true
+      }).then(res => {
+        if (res?.success && res?.callSid) {
+          console.log('🔴 Live Twilio Call Sid:', res.callSid);
+        }
+      }).catch(err => {
+        console.warn('Live dial notice:', err.response?.data?.details || err.message);
+      });
+    } catch (_) {}
+
     // After 2.5 seconds, prospect picks up
     setTimeout(async () => {
       soundFx.playConnectChime();

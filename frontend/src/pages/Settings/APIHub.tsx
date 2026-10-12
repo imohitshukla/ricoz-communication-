@@ -29,7 +29,14 @@ interface ChannelStatus {
 export function APIHub() {
   const [channels, setChannels] = useState<ChannelStatus[]>([]);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [configuringId, setConfiguringId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Form State
+  const [accessToken, setAccessToken] = useState('');
+  const [phoneNumberId, setPhoneNumberId] = useState('');
+  const [instagramAccountId, setInstagramAccountId] = useState('');
+  const [wabaId, setWabaId] = useState('');
 
   useEffect(() => {
     fetchStatus();
@@ -66,6 +73,26 @@ export function APIHub() {
     } catch (e) {
       setTestingId(null);
       alert(`Gateway "${channelId.toUpperCase()}" tested in high-fidelity sandbox mode.`);
+    }
+  };
+
+  const handleSaveConfig = async (provider: string) => {
+    try {
+      await api.post('/api/integrations', {
+        provider,
+        accessToken,
+        phoneNumberId: provider === 'whatsapp' ? phoneNumberId : undefined,
+        instagramAccountId: provider === 'instagram' ? instagramAccountId : undefined,
+        wabaId: provider === 'whatsapp' ? wabaId : undefined
+      });
+      setConfiguringId(null);
+      setAccessToken('');
+      setPhoneNumberId('');
+      setInstagramAccountId('');
+      setWabaId('');
+      fetchStatus();
+    } catch (e) {
+      alert('Failed to save integration configuration.');
     }
   };
 
@@ -190,6 +217,14 @@ GEMINI_API_KEY="AIza..."`;
               </div>
 
               <div className="flex items-center space-x-2 mt-4 pt-3 border-t border-slate-100">
+                {(ch.id === 'whatsapp' || ch.id === 'instagram') && (
+                  <button
+                    onClick={() => setConfiguringId(configuringId === ch.id ? null : ch.id)}
+                    className="flex-1 py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors flex items-center justify-center cursor-pointer"
+                  >
+                    <span>{configuringId === ch.id ? 'Cancel' : 'Configure'}</span>
+                  </button>
+                )}
                 <button
                   onClick={() => handleTestGateway(ch.id)}
                   disabled={testingId === ch.id}
@@ -199,6 +234,64 @@ GEMINI_API_KEY="AIza..."`;
                   <span>{testingId === ch.id ? 'Pinging Gateway...' : 'Test Connection'}</span>
                 </button>
               </div>
+
+              {/* Inline Configuration Form */}
+              {configuringId === ch.id && (
+                <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="mb-3">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Access Token</label>
+                    <input 
+                      type="text" 
+                      placeholder="EAAG..." 
+                      className="w-full text-xs p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500" 
+                      value={accessToken}
+                      onChange={e => setAccessToken(e.target.value)}
+                    />
+                  </div>
+                  {ch.id === 'whatsapp' && (
+                    <>
+                      <div className="mb-3">
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number ID</label>
+                        <input 
+                          type="text" 
+                          placeholder="102345..." 
+                          className="w-full text-xs p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500"
+                          value={phoneNumberId}
+                          onChange={e => setPhoneNumberId(e.target.value)}
+                        />
+                      </div>
+                      <div className="mb-3">
+                        <label className="block text-xs font-bold text-slate-700 mb-1">WhatsApp Business Account (WABA) ID</label>
+                        <input 
+                          type="text" 
+                          placeholder="Needed for fetching templates..." 
+                          className="w-full text-xs p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500"
+                          value={wabaId}
+                          onChange={e => setWabaId(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {ch.id === 'instagram' && (
+                    <div className="mb-3">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Instagram Account ID</label>
+                      <input 
+                        type="text" 
+                        placeholder="178414..." 
+                        className="w-full text-xs p-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500"
+                        value={instagramAccountId}
+                        onChange={e => setInstagramAccountId(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => handleSaveConfig(ch.id)}
+                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs"
+                  >
+                    Save Credentials
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

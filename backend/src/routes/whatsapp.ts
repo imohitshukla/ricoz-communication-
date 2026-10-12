@@ -3,6 +3,9 @@ import { prisma } from '../db';
 import { io } from '../index';
 import { generateAgentResponse } from '../aiService';
 import axios from 'axios';
+import { verifyMetaSignature } from '../middleware/metaWebhookAuth';
+import fs from 'fs';
+import path from 'path';
 
 export const whatsappRouter = Router();
 
@@ -32,10 +35,44 @@ whatsappRouter.get('/webhook', (req, res) => {
 });
 
 /**
+ * Download media from Meta Graph API
+ */
+async function downloadMedia(mediaId: string, accessToken: string): Promise<string | null> {
+  try {
+    const res = await axios.get(`https://graph.facebook.com/v20.0/${mediaId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    
+    if (!res.data.url) return null;
+    
+    const mediaRes = await axios.get(res.data.url, {
+      responseType: 'stream',
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    
+    const mime = res.data.mime_type || 'application/octet-stream';
+    const ext = mime.split('/')[1]?.split(';')[0] || 'bin';
+    const filename = `${mediaId}.${ext}`;
+    const filepath = path.join(__dirname, '../../uploads', filename);
+    
+    const writer = fs.createWriteStream(filepath);
+    mediaRes.data.pipe(writer);
+    
+    return new Promise((resolve, reject) => {
+      writer.on('finish', () => resolve(`/uploads/${filename}`));
+      writer.on('error', reject);
+    });
+  } catch (err) {
+    console.error('Error downloading media from Meta:', err);
+    return null;
+  }
+}
+
+/**
  * @route   POST /api/whatsapp/webhook
  * @desc    Receive incoming WhatsApp messages, media, and status receipts
  */
-whatsappRouter.post('/webhook', async (req, res) => {
+whatsappRouter.post('/webhook', verifyMetaSignature, async (req, res) => {
   // Quickly acknowledge receipt to Meta to prevent retries
   res.sendStatus(200);
 
@@ -59,24 +96,44 @@ whatsappRouter.post('/webhook', async (req, res) => {
         if (value.messages && value.messages.length > 0) {
           const contactMetadata = value.contacts?.[0] || {};
           const customerName = contactMetadata.profile?.name || 'WhatsApp Customer';
+          
+          const phoneNumberId = value.metadata?.phone_number_id;
 
           for (const message of value.messages) {
             const senderPhone = message.from;
-            const messageText = message.text?.body || (message.type !== 'text' ? `[${message.type} attachment]` : '');
+            // Find integration by phone_number_id
+            const integration = await prisma.channelIntegration.findFirst({
+              where: { provider: 'whatsapp', phoneNumberId }
+            });
+
+            if (!integration) {
+              console.warn(`No integration found for phone_number_id: ${phoneNumberId}`);
+              continue;
+            }
+
+            let messageText = message.text?.body || '';
+            
+            if (message.type !== 'text') {
+              const mediaId = message[message.type]?.id;
+              if (mediaId && integration.accessToken) {
+                const mediaUrl = await downloadMedia(mediaId, integration.accessToken);
+                if (mediaUrl) {
+                  messageText = `[${message.type} attached]: ${mediaUrl}`;
+                } else {
+                  messageText = `[Failed to download ${message.type} attachment]`;
+                }
+              } else {
+                messageText = `[${message.type} attachment]`;
+              }
+            }
             
             console.log(`Inbound WhatsApp message from ${senderPhone} (${customerName}): ${messageText}`);
 
-            // Find or associate workspace (default workspace if webhook isn't multi-account mapped yet)
-            let workspace = await prisma.workspace.findFirst();
-            if (!workspace) {
-              workspace = await prisma.workspace.create({
-                data: { name: 'Default Workspace' }
-              });
-            }
+            const workspaceId = integration.workspaceId;
 
             // Find or create Contact
             let contact = await prisma.contact.findFirst({
-              where: { workspaceId: workspace.id, phoneNumber: senderPhone }
+              where: { workspaceId, phoneNumber: senderPhone }
             });
 
             if (!contact) {
@@ -84,7 +141,7 @@ whatsappRouter.post('/webhook', async (req, res) => {
                 data: {
                   phoneNumber: senderPhone,
                   name: customerName,
-                  workspaceId: workspace.id
+                  workspaceId: workspaceId
                 }
               });
             } else if (!contact.name || contact.name === senderPhone) {
@@ -137,7 +194,7 @@ whatsappRouter.post('/webhook', async (req, res) => {
             });
 
             // Automated Auto-Reply / AI Agent response evaluation
-            await handleAutoReply(workspace.id, contact, conversation, messageText);
+            await handleAutoReply(workspaceId, contact, conversation, messageText, integration);
           }
         }
       }
@@ -150,7 +207,7 @@ whatsappRouter.post('/webhook', async (req, res) => {
 /**
  * Handle auto-reply rule or Gemini AI Agent answer
  */
-async function handleAutoReply(workspaceId: string, contact: any, conversation: any, incomingText: string) {
+async function handleAutoReply(workspaceId: string, contact: any, conversation: any, incomingText: string, integration: any) {
   try {
     // 1. Check auto-reply rules
     const rules = await prisma.autoReplyRule.findMany({ where: { isActive: true } });
@@ -208,10 +265,10 @@ async function handleAutoReply(workspaceId: string, contact: any, conversation: 
         });
 
         // Dispatch outbound to WhatsApp Cloud API if credentials exist
-        if (GRAPH_API_TOKEN && PHONE_NUMBER_ID) {
+        if (integration.accessToken && integration.phoneNumberId) {
           try {
             await axios.post(
-              `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
+              `https://graph.facebook.com/v20.0/${integration.phoneNumberId}/messages`,
               {
                 messaging_product: 'whatsapp',
                 recipient_type: 'individual',
@@ -221,7 +278,7 @@ async function handleAutoReply(workspaceId: string, contact: any, conversation: 
               },
               {
                 headers: {
-                  Authorization: `Bearer ${GRAPH_API_TOKEN}`,
+                  Authorization: `Bearer ${integration.accessToken}`,
                   'Content-Type': 'application/json'
                 }
               }
@@ -243,19 +300,27 @@ async function handleAutoReply(workspaceId: string, contact: any, conversation: 
  */
 whatsappRouter.post('/send', async (req, res) => {
   const { to, text, contactId } = req.body;
+  const workspaceId = (req as any).user?.workspaceId; // Assume authenticate middleware or get from contact
 
   if (!to || !text) {
     return res.status(400).json({ error: 'Recipient phone (to) and text are required' });
   }
 
   try {
+    let integration = null;
+    if (workspaceId) {
+      integration = await prisma.channelIntegration.findFirst({
+        where: { workspaceId, provider: 'whatsapp' }
+      });
+    }
+
     let metaMessageId = 'mock_msg_' + Date.now();
 
     // Call Meta Cloud API if credentials are present
-    if (GRAPH_API_TOKEN && PHONE_NUMBER_ID) {
+    if (integration && integration.accessToken && integration.phoneNumberId) {
       try {
         const response = await axios.post(
-          `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
+          `https://graph.facebook.com/v20.0/${integration.phoneNumberId}/messages`,
           {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -265,7 +330,7 @@ whatsappRouter.post('/send', async (req, res) => {
           },
           {
             headers: {
-              Authorization: `Bearer ${GRAPH_API_TOKEN}`,
+              Authorization: `Bearer ${integration.accessToken}`,
               'Content-Type': 'application/json'
             }
           }
@@ -285,7 +350,7 @@ whatsappRouter.post('/send', async (req, res) => {
     res.json({
       success: true,
       messageId: metaMessageId,
-      status: GRAPH_API_TOKEN ? 'dispatched_to_meta' : 'simulated'
+      status: (integration && integration.accessToken) ? 'dispatched_to_meta' : 'simulated'
     });
   } catch (error: any) {
     console.error('Send WhatsApp error:', error);
@@ -297,72 +362,42 @@ whatsappRouter.post('/send', async (req, res) => {
  * @route   GET /api/whatsapp/templates
  * @desc    Fetch approved WhatsApp templates for broadcasting
  */
-whatsappRouter.get('/templates', (req, res) => {
-  const templates = [
-    {
-      id: 'welcome_lead',
-      name: 'Welcome Lead',
-      category: 'MARKETING',
-      language: 'en_US',
-      status: 'APPROVED',
-      header: 'Welcome to Ricoz',
-      headerType: 'IMAGE',
-      headerUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=600&q=80',
-      body: 'Hi {{1}}, thank you for contacting Ricoz! Our specialist will assist you with {{2}} shortly.',
-      sampleValues: ['Mohit', 'Omnichannel Marketing'],
-      buttons: [
-        { type: 'QUICK_REPLY', text: 'Chat With Agent' },
-        { type: 'URL', text: 'View Product Catalog', url: 'https://ricoz.io/catalog' }
-      ]
-    },
-    {
-      id: 'order_update',
-      name: 'Order Confirmation',
-      category: 'UTILITY',
-      language: 'en_US',
-      status: 'APPROVED',
-      header: 'Order Confirmed',
-      headerType: 'TEXT',
-      body: 'Hello {{1}}, your order #{{2}} of {{3}} has been confirmed and is being processed!',
-      sampleValues: ['Alex', 'RCZ-4821', '$149.00'],
-      buttons: [
-        { type: 'URL', text: 'Track Order', url: 'https://ricoz.io/track' }
-      ]
-    },
-    {
-      id: 'vip_offer',
-      name: 'Exclusive VIP Sale',
-      category: 'MARKETING',
-      language: 'en_US',
-      status: 'APPROVED',
-      header: 'Limited Time Exclusive',
-      headerType: 'IMAGE',
-      headerUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=600&q=80',
-      body: 'Hi {{1}}, you have been selected for 35% off on your next subscription renewal. Use code {{2}} before midnight!',
-      sampleValues: ['Valued Partner', 'VIP35'],
-      buttons: [
-        { type: 'URL', text: 'Claim Discount', url: 'https://ricoz.io/pricing?code=VIP35' },
-        { type: 'PHONE_NUMBER', text: 'Call Desk', phoneNumber: '+18005550199' }
-      ]
-    },
-    {
-      id: 'appointment_reminder',
-      name: 'Appointment Reminder',
-      category: 'UTILITY',
-      language: 'en_US',
-      status: 'APPROVED',
-      header: 'Meeting Confirmation',
-      headerType: 'TEXT',
-      body: 'Hello {{1}}, this is a friendly reminder for your scheduled strategy session on {{2}} at {{3}}.',
-      sampleValues: ['Elena', 'Tomorrow', '3:00 PM EST'],
-      buttons: [
-        { type: 'QUICK_REPLY', text: 'Confirm' },
-        { type: 'QUICK_REPLY', text: 'Reschedule' }
-      ]
-    }
-  ];
+whatsappRouter.get('/templates', async (req, res) => {
+  try {
+    const workspaceId = (req as any).user.workspaceId;
 
-  res.json(templates);
+    const integration = await prisma.channelIntegration.findFirst({
+      where: { workspaceId, provider: 'whatsapp' }
+    });
+
+    if (integration && integration.accessToken && integration.wabaId) {
+      // Fetch from Meta
+      const response = await axios.get(
+        `https://graph.facebook.com/v20.0/${integration.wabaId}/message_templates`,
+        {
+          headers: { Authorization: `Bearer ${integration.accessToken}` }
+        }
+      );
+
+      const templates = response.data.data.map((t: any) => ({
+        id: t.name,
+        name: t.name,
+        category: t.category,
+        language: t.language,
+        status: t.status,
+        body: t.components.find((c: any) => c.type === 'BODY')?.text || '',
+        buttons: t.components.find((c: any) => c.type === 'BUTTONS')?.buttons || []
+      }));
+
+      return res.json(templates);
+    }
+
+    // Fallback to empty if not configured (or return mock for sandbox testing)
+    return res.json([]);
+  } catch (error: any) {
+    console.error('Error fetching Meta templates:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch templates from Meta' });
+  }
 });
 
 /**
