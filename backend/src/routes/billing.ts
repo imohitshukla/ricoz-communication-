@@ -15,6 +15,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 // Helper to map plan names to Stripe Price IDs
 // In production, these should come from process.env or be passed from the frontend
 const PLAN_PRICE_IDS: Record<string, Record<string, string>> = {
+  // Marketing & Support Hub plans
   'Starter': {
     'Monthly': process.env.STRIPE_PRICE_STARTER_MONTHLY || 'price_placeholder_starter_monthly',
     'Quarterly': process.env.STRIPE_PRICE_STARTER_QUARTERLY || 'price_placeholder_starter_quarterly',
@@ -29,6 +30,40 @@ const PLAN_PRICE_IDS: Record<string, Record<string, string>> = {
     'Monthly': process.env.STRIPE_PRICE_ADVANCED_MONTHLY || 'price_placeholder_advanced_monthly',
     'Quarterly': process.env.STRIPE_PRICE_ADVANCED_QUARTERLY || 'price_placeholder_advanced_quarterly',
     'Yearly': process.env.STRIPE_PRICE_ADVANCED_YEARLY || 'price_placeholder_advanced_yearly',
+  },
+
+  // WhatsApp AI Agents plans
+  'WhatsApp AI Agents Starter': {
+    'Monthly': process.env.STRIPE_PRICE_AI_STARTER_MONTHLY || 'price_placeholder_ai_starter_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_AI_STARTER_QUARTERLY || 'price_placeholder_ai_starter_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_AI_STARTER_YEARLY || 'price_placeholder_ai_starter_yearly',
+  },
+  'WhatsApp AI Agents Growth': {
+    'Monthly': process.env.STRIPE_PRICE_AI_GROWTH_MONTHLY || 'price_placeholder_ai_growth_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_AI_GROWTH_QUARTERLY || 'price_placeholder_ai_growth_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_AI_GROWTH_YEARLY || 'price_placeholder_ai_growth_yearly',
+  },
+  'WhatsApp AI Agents Advanced': {
+    'Monthly': process.env.STRIPE_PRICE_AI_ADVANCED_MONTHLY || 'price_placeholder_ai_advanced_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_AI_ADVANCED_QUARTERLY || 'price_placeholder_ai_advanced_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_AI_ADVANCED_YEARLY || 'price_placeholder_ai_advanced_yearly',
+  },
+
+  // Sales CRM plans
+  'Sales CRM Starter': {
+    'Monthly': process.env.STRIPE_PRICE_CRM_STARTER_MONTHLY || 'price_placeholder_crm_starter_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_CRM_STARTER_QUARTERLY || 'price_placeholder_crm_starter_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_CRM_STARTER_YEARLY || 'price_placeholder_crm_starter_yearly',
+  },
+  'Sales CRM Growth': {
+    'Monthly': process.env.STRIPE_PRICE_CRM_GROWTH_MONTHLY || 'price_placeholder_crm_growth_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_CRM_GROWTH_QUARTERLY || 'price_placeholder_crm_growth_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_CRM_GROWTH_YEARLY || 'price_placeholder_crm_growth_yearly',
+  },
+  'Sales CRM Advanced': {
+    'Monthly': process.env.STRIPE_PRICE_CRM_ADVANCED_MONTHLY || 'price_placeholder_crm_advanced_monthly',
+    'Quarterly': process.env.STRIPE_PRICE_CRM_ADVANCED_QUARTERLY || 'price_placeholder_crm_advanced_quarterly',
+    'Yearly': process.env.STRIPE_PRICE_CRM_ADVANCED_YEARLY || 'price_placeholder_crm_advanced_yearly',
   },
 };
 
@@ -92,10 +127,22 @@ router.get('/subscription', authenticate, async (req, res) => {
   }
 });
 
+// Price mapping in INR for automatic dynamic price_data
+const PLAN_AMOUNTS: Record<string, Record<string, number>> = {
+  'Starter': { Monthly: 999, Quarterly: 3499, Yearly: 11999 },
+  'Growth': { Monthly: 2799, Quarterly: 7699, Yearly: 26399 },
+  'Advanced': { Monthly: 3799, Quarterly: 10499, Yearly: 35999 },
+  'WhatsApp AI Agents Starter': { Monthly: 1999, Quarterly: 5499, Yearly: 18999 },
+  'WhatsApp AI Agents Growth': { Monthly: 3000, Quarterly: 8280, Yearly: 28800 },
+  'WhatsApp AI Agents Advanced': { Monthly: 5999, Quarterly: 16550, Yearly: 57590 },
+  'Sales CRM Starter': { Monthly: 1499, Quarterly: 4139, Yearly: 14390 },
+  'Sales CRM Growth': { Monthly: 2499, Quarterly: 6897, Yearly: 23988 },
+  'Sales CRM Advanced': { Monthly: 4499, Quarterly: 12417, Yearly: 43190 },
+};
+
 // @route   POST /api/billing/create-checkout-session
 // @desc    Create a Stripe Checkout session for a specific plan
 router.post('/create-checkout-session', authenticate, async (req, res) => {
-
   const { planName, billingCycle = 'Quarterly' } = req.body;
   
   try {
@@ -107,59 +154,118 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
     
     if (!dbUser) return res.status(404).json({ error: 'User not found' });
     
-    const priceId = PLAN_PRICE_IDS[planName]?.[billingCycle];
-    if (!priceId) return res.status(400).json({ error: 'Invalid plan or billing cycle selected' });
+    const validCycles = ['Monthly', 'Quarterly', 'Yearly'];
+    if (!validCycles.includes(billingCycle)) {
+      return res.status(400).json({ error: 'Invalid billing cycle selected' });
+    }
 
-    let stripeCustomerId = dbUser.workspace.stripeCustomerId;
+    // Resolve client origin dynamically so production Vercel redirects work properly
+    const clientUrl = (req.headers.origin as string) || 
+      (req.headers.referer ? new URL(req.headers.referer as string).origin : '') || 
+      FRONTEND_URL;
 
-    // Create a customer if one doesn't exist
-    if (!stripeCustomerId) {
-      if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_placeholder') {
-        const customer = await stripe.customers.create({
-          email: dbUser.email,
-          name: dbUser.workspace.name,
-          metadata: {
-            workspaceId: dbUser.workspaceId,
-            userId: dbUser.id
-          }
-        });
-        stripeCustomerId = customer.id;
-        
-        await prisma.workspace.update({
-          where: { id: dbUser.workspaceId },
-          data: { stripeCustomerId }
-        });
-      } else {
-        // Mock mode
-        stripeCustomerId = 'cus_mock_' + Math.random().toString(36).substring(7);
-      }
+    // Check if custom Stripe Price ID is configured in env
+    const configuredPriceId = PLAN_PRICE_IDS[planName]?.[billingCycle] || 
+      PLAN_PRICE_IDS[planName.replace(/^(WhatsApp AI Agents|Sales CRM)\s+/, '')]?.[billingCycle];
+
+    const isRealPriceId = configuredPriceId && 
+      !configuredPriceId.includes('placeholder') && 
+      configuredPriceId.startsWith('price_');
+
+    // Calculate plan amount in INR
+    const cleanPlan = planName.replace(/^(WhatsApp AI Agents|Sales CRM)\s+/, '');
+    const amountInINR = PLAN_AMOUNTS[planName]?.[billingCycle] || PLAN_AMOUNTS[cleanPlan]?.[billingCycle] || 999;
+
+    // Construct line items - either real Stripe Price ID or dynamic price_data with recurring terms
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = isRealPriceId
+      ? [{ price: configuredPriceId, quantity: 1 }]
+      : [
+          {
+            price_data: {
+              currency: 'inr',
+              product_data: {
+                name: `Ricoz ${planName}`,
+                description: `${billingCycle} billing for Ricoz ${planName} subscription`,
+              },
+              unit_amount: amountInINR * 100, // paise
+              recurring: {
+                interval: (billingCycle === 'Yearly' ? 'year' : 'month') as Stripe.Checkout.SessionCreateParams.LineItem.PriceData.Recurring.Interval,
+                interval_count: billingCycle === 'Quarterly' ? 3 : 1,
+              },
+            },
+            quantity: 1,
+          },
+        ];
+
+    let stripeCustomerId = dbUser.workspace?.stripeCustomerId;
+    if (stripeCustomerId && (stripeCustomerId.startsWith('cus_mock_') || !stripeCustomerId.startsWith('cus_'))) {
+      stripeCustomerId = undefined;
     }
 
     if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_placeholder') {
-      const session = await stripe.checkout.sessions.create({
-        customer: stripeCustomerId,
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: `${FRONTEND_URL}/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
-        cancel_url: `${FRONTEND_URL}/billing?canceled=true`,
-        metadata: {
-          workspaceId: dbUser.workspaceId,
-          planTier: planName,
-          billingCycle: billingCycle
+      try {
+        // Create Stripe customer if doesn't exist
+        if (!stripeCustomerId) {
+          try {
+            const customer = await stripe.customers.create({
+              email: dbUser.email,
+              name: dbUser.workspace?.name || dbUser.name || 'Workspace Owner',
+              metadata: {
+                workspaceId: dbUser.workspaceId || '',
+                userId: dbUser.id
+              }
+            });
+            stripeCustomerId = customer.id;
+            
+            if (dbUser.workspaceId) {
+              await prisma.workspace.update({
+                where: { id: dbUser.workspaceId },
+                data: { stripeCustomerId }
+              });
+            }
+          } catch (custErr: any) {
+            console.warn('Customer creation skipped, using email fallback:', custErr.message);
+            stripeCustomerId = undefined;
+          }
         }
-      });
-      
-      res.json({ url: session.url });
+
+        const sessionParams: Stripe.Checkout.SessionCreateParams = {
+          payment_method_types: ['card'],
+          line_items,
+          mode: 'subscription',
+          success_url: `${clientUrl}/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
+          cancel_url: `${clientUrl}/billing?canceled=true`,
+          metadata: {
+            workspaceId: dbUser.workspaceId || '',
+            planTier: planName,
+            billingCycle: billingCycle
+          }
+        };
+
+        if (stripeCustomerId) {
+          sessionParams.customer = stripeCustomerId;
+        } else {
+          sessionParams.customer_email = dbUser.email;
+        }
+
+        const session = await stripe.checkout.sessions.create(sessionParams);
+        return res.json({ url: session.url });
+      } catch (stripeErr: any) {
+        console.error('Stripe API error:', stripeErr);
+        // If Stripe fails in dev/test mode, fallback to simulated checkout so user experience is not blocked
+        if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development' || (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_test_'))) {
+          console.warn('Falling back to mock checkout due to Stripe error:', stripeErr.message);
+          return res.json({ 
+            url: `${clientUrl}/billing?session_id=mock_session_123&success=true&mockPlan=${encodeURIComponent(planName)}` 
+          });
+        }
+        return res.status(500).json({ error: stripeErr.message || 'Stripe checkout error' });
+      }
     } else {
-      // MOCK MODE: Simulate a successful checkout by just returning a fake URL 
-      // and internally we will just say it succeeded for demo purposes if they follow it.
-      res.json({ url: `${FRONTEND_URL}/billing?session_id=mock_session_123&success=true&mockPlan=${planName}` });
+      // Mock mode
+      return res.json({ 
+        url: `${clientUrl}/billing?session_id=mock_session_123&success=true&mockPlan=${encodeURIComponent(planName)}` 
+      });
     }
 
   } catch (error: any) {
