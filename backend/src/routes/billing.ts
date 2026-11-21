@@ -197,7 +197,7 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
           },
         ];
 
-    let stripeCustomerId = dbUser.workspace?.stripeCustomerId;
+    let stripeCustomerId: string | null | undefined = dbUser.workspace?.stripeCustomerId;
     if (stripeCustomerId && (stripeCustomerId.startsWith('cus_mock_') || !stripeCustomerId.startsWith('cus_'))) {
       stripeCustomerId = undefined;
     }

@@ -47,7 +47,11 @@ router.post('/signup', async (req, res) => {
     });
 
     // Create token
-    const token = jwt.sign({ userId: user.id, workspaceId: user.workspaceId }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { userId: user.id, workspaceId: user.workspaceId, role: user.role, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     res.status(201).json({
       token,
@@ -92,7 +96,11 @@ router.post('/login', async (req, res) => {
     }
 
     // Create token
-    const token = jwt.sign({ userId: user.id, workspaceId: user.workspaceId }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { userId: user.id, workspaceId: user.workspaceId, role: user.role, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     res.json({
       token,
@@ -184,7 +192,7 @@ router.post('/social', async (req, res) => {
 
     // Generate JWT
     const token = jwt.sign(
-      { userId: user.id, workspaceId: user.workspaceId },
+      { userId: user.id, workspaceId: user.workspaceId, role: user.role, email: user.email },
       JWT_SECRET,
       { expiresIn: '7d' }
     );

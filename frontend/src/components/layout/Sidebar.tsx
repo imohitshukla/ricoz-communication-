@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import {
   Home,
   Inbox,
@@ -29,12 +30,17 @@ import {
   Layers,
   ChevronRight,
   CheckCircle2,
-  Workflow
+  Workflow,
+  Building2,
+  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAuth();
+  const userRole = user?.role || 'Admin';
+  const isAdmin = userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'owner';
 
   return (
     <aside className="w-[270px] h-screen bg-[#0b1329] border-r border-slate-800/80 flex flex-col z-20 shrink-0 text-slate-300 shadow-2xl select-none">
@@ -64,9 +70,9 @@ export function Sidebar() {
         <div className="mt-2.5 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 font-medium">
           <div className="flex items-center space-x-2 truncate">
             <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></div>
-            <span className="truncate text-slate-200 font-semibold">Production Workspace</span>
+            <span className="truncate text-slate-200 font-semibold">{user?.email?.split('@')[0] || 'Team'} Workspace</span>
           </div>
-          <span className="text-[9px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded font-mono">ASIA-S1</span>
+          <span className="text-[9px] text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono font-bold uppercase">{userRole}</span>
         </div>
       </div>
 
@@ -382,25 +388,75 @@ export function Sidebar() {
 
           <div className="space-y-1">
             <NavLink
-              to="/dashboard/api-hub"
+              to="/dashboard/team"
               className={({ isActive }) => cn(
                 "group flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold relative overflow-hidden",
                 isActive 
-                  ? "text-white bg-amber-500/20 border border-amber-400/30 shadow-sm" 
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                  ? "text-white bg-gradient-to-r from-emerald-500/25 to-teal-500/15 border border-emerald-400/40 shadow-sm" 
+                  : "text-slate-300 hover:text-white hover:bg-slate-800/80"
               )}
             >
               {({ isActive }) => (
                 <>
-                  {isActive && <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-amber-400 rounded-r-full shadow-sm" />}
+                  {isActive && <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-emerald-400 rounded-r-full shadow-sm shadow-emerald-400" />}
                   <div className="flex items-center">
-                    <Key className={cn("w-4 h-4 mr-2.5 transition-colors", isActive ? "text-amber-400" : "text-slate-400 group-hover:text-amber-400")} />
-                    API Credentials Hub
+                    <Users className={cn("w-4 h-4 mr-2.5 transition-colors", isActive ? "text-emerald-400" : "text-emerald-400/90 group-hover:text-emerald-300")} />
+                    <span>Team & Members</span>
                   </div>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/30">
+                    {isAdmin ? 'ADMIN' : 'ROSTER'}
+                  </span>
                 </>
               )}
             </NavLink>
+
+            {isAdmin && (
+              <NavLink
+                to="/dashboard/organization"
+                className={({ isActive }) => cn(
+                  "group flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold relative overflow-hidden",
+                  isActive 
+                    ? "text-white bg-gradient-to-r from-emerald-500/25 to-teal-500/15 border border-emerald-400/40 shadow-sm" 
+                    : "text-slate-300 hover:text-white hover:bg-slate-800/80"
+                )}
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-emerald-400 rounded-r-full shadow-sm shadow-emerald-400" />}
+                    <div className="flex items-center">
+                      <Building2 className={cn("w-4 h-4 mr-2.5 transition-colors", isActive ? "text-emerald-400" : "text-emerald-400/90 group-hover:text-emerald-300")} />
+                      <span>Org & HR Admin</span>
+                    </div>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/30">
+                      HR ACCESS
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            )}
+
+            {isAdmin && (
+              <NavLink
+                to="/dashboard/api-hub"
+                className={({ isActive }) => cn(
+                  "group flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-bold relative overflow-hidden",
+                  isActive 
+                    ? "text-white bg-amber-500/20 border border-amber-400/30 shadow-sm" 
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                )}
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-amber-400 rounded-r-full shadow-sm" />}
+                    <div className="flex items-center">
+                      <Key className={cn("w-4 h-4 mr-2.5 transition-colors", isActive ? "text-amber-400" : "text-slate-400 group-hover:text-amber-400")} />
+                      API Credentials Hub
+                    </div>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  </>
+                )}
+              </NavLink>
+            )}
 
             <NavLink
               to="/dashboard/integrations"

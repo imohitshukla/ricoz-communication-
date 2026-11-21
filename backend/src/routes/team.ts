@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { prisma } from '../db';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { sendTeamInviteEmail } from '../services/emailService';
+import bcrypt from 'bcryptjs';
 
 export const teamRouter = Router();
 
@@ -41,14 +42,15 @@ teamRouter.get('/members', async (req, res) => {
     });
 
     // Augment with activity / resolution metrics
-    const members = users.map(u => ({
+    const members = users.map((u, idx) => ({
       id: u.id,
       name: u.name,
       email: u.email,
-      role: u.role,
-      status: 'Online',
+      role: u.role || 'Agent',
+      status: idx % 4 === 3 ? 'Away' : 'Online',
       assigned: Math.floor(Math.random() * 10) + 2,
-      resolved: Math.floor(Math.random() * 80) + 20
+      resolved: Math.floor(Math.random() * 80) + 20,
+      createdAt: u.createdAt
     }));
 
     res.json(members);
@@ -58,8 +60,8 @@ teamRouter.get('/members', async (req, res) => {
   }
 });
 
-// POST /api/team/invite - Invite a new team member
-teamRouter.post('/invite', async (req, res) => {
+// POST /api/team/invite - Invite a new team member (Admins/Owners only)
+teamRouter.post('/invite', requireRole(['Owner', 'Admin']), async (req, res) => {
   try {
     const workspaceId = (req as any).user.workspaceId;
     const { email, role = 'Agent', name } = req.body;
@@ -75,23 +77,26 @@ teamRouter.post('/invite', async (req, res) => {
     }
 
     // Create user with a known plain-text temp password (sent via email)
-    const bcrypt = require('bcryptjs');
-    const plainTempPassword = 'Welcome@Ricoz1!';
+    const plainTempPassword = 'Welcome@Ricoz' + Math.floor(100 + Math.random() * 900) + '!';
     const hashedPassword = await bcrypt.hash(plainTempPassword, 10);
+
+    const validRoles = ['Admin', 'Agent', 'Viewer', 'Owner'];
+    const assignedRole = validRoles.includes(role) ? role : 'Agent';
 
     const newUser = await prisma.user.create({
       data: {
         email,
         name: name || email.split('@')[0],
         password: hashedPassword,
-        role: role || 'Agent',
+        role: assignedRole,
         workspaceId
       },
       select: {
         id: true,
         name: true,
         email: true,
-        role: true
+        role: true,
+        createdAt: true
       }
     });
 
@@ -100,20 +105,27 @@ teamRouter.post('/invite', async (req, res) => {
     const inviter = (req as any).user;
 
     // Send invite email with credentials
-    const emailResult = await sendTeamInviteEmail({
-      toEmail: email,
-      toName: newUser.name,
-      inviterName: inviter?.name || 'Your Admin',
-      workspaceName: workspace?.name || 'Ricoz',
-      tempPassword: plainTempPassword,
-    });
+    let emailSent = false;
+    try {
+      const emailResult = await sendTeamInviteEmail({
+        toEmail: email,
+        toName: newUser.name,
+        inviterName: inviter?.name || 'Your Admin',
+        workspaceName: workspace?.name || 'Ricoz',
+        tempPassword: plainTempPassword,
+      });
+      emailSent = emailResult.success;
+    } catch (mailErr) {
+      console.warn('Mail dispatch skipped or failed:', mailErr);
+    }
 
     res.status(201).json({
       success: true,
-      message: emailResult.success
+      message: emailSent
         ? 'Team member added & invite email sent'
-        : 'Team member added (email delivery failed — check SMTP config)',
-      emailSent: emailResult.success,
+        : 'Team member created with temporary password generated',
+      emailSent,
+      tempPassword: plainTempPassword,
       user: {
         ...newUser,
         status: 'Online',
@@ -127,22 +139,104 @@ teamRouter.post('/invite', async (req, res) => {
   }
 });
 
-// DELETE /api/team/members/:id - Remove member
-teamRouter.delete('/members/:id', async (req, res) => {
+// PUT /api/team/members/:id/role - Update member role (Admins/Owners only)
+teamRouter.put('/members/:id/role', requireRole(['Owner', 'Admin']), async (req, res) => {
   try {
     const workspaceId = (req as any).user.workspaceId;
-    const { id } = req.params;
+    const currentUserId = (req as any).user.id;
+    const id = req.params.id as string;
+    const { role } = req.body;
+
+    const validRoles = ['Owner', 'Admin', 'Agent', 'Viewer'];
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({ error: `Invalid role. Allowed roles: ${validRoles.join(', ')}` });
+    }
+
+    // Verify member belongs to this workspace
+    const member = await prisma.user.findFirst({
+      where: { id, workspaceId }
+    });
+
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found in this workspace' });
+    }
+
+    // Safety: don't let user demote themselves from Admin if they are the logged in admin
+    if (currentUserId === id && role !== 'Admin' && role !== 'Owner') {
+      return res.status(400).json({ error: 'You cannot demote yourself from Admin status' });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { role },
+      select: { id: true, name: true, email: true, role: true, updatedAt: true }
+    });
+
+    res.json({ success: true, user: updated, message: `Role updated to ${role}` });
+  } catch (error) {
+    console.error('Error updating member role:', error);
+    res.status(500).json({ error: 'Failed to update member role' });
+  }
+});
+
+// POST /api/team/members/:id/reset-password - Admin reset password for team member
+teamRouter.post('/members/:id/reset-password', requireRole(['Owner', 'Admin']), async (req, res) => {
+  try {
+    const workspaceId = (req as any).user.workspaceId;
+    const id = req.params.id as string;
+
+    const member = await prisma.user.findFirst({
+      where: { id, workspaceId }
+    });
+
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found in this workspace' });
+    }
+
+    const tempPassword = 'RicozPass#' + Math.floor(1000 + Math.random() * 9000);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    await prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword }
+    });
+
+    res.json({
+      success: true,
+      tempPassword,
+      message: `Password reset successfully for ${member.name}. Temporary password generated.`
+    });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ error: 'Failed to reset team member password' });
+  }
+});
+
+// DELETE /api/team/members/:id - Remove member (Admins/Owners only)
+teamRouter.delete('/members/:id', requireRole(['Owner', 'Admin']), async (req, res) => {
+  try {
+    const workspaceId = (req as any).user.workspaceId;
+    const id = req.params.id as string;
 
     // Prevent removing oneself if current user
     if ((req as any).user.id === id) {
       return res.status(400).json({ error: 'You cannot remove yourself' });
     }
 
-    await prisma.user.delete({
+    // Verify member belongs to workspace
+    const member = await prisma.user.findFirst({
       where: { id, workspaceId }
     });
 
-    res.json({ success: true });
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found in this workspace' });
+    }
+
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    res.json({ success: true, message: 'Member removed successfully' });
   } catch (error) {
     console.error('Error removing team member:', error);
     res.status(500).json({ error: 'Failed to remove team member' });
@@ -176,8 +270,8 @@ teamRouter.get('/sla', async (req, res) => {
   }
 });
 
-// PUT /api/team/sla - Update SLA configuration
-teamRouter.put('/sla', async (req, res) => {
+// PUT /api/team/sla - Update SLA configuration (Admins/Owners only)
+teamRouter.put('/sla', requireRole(['Owner', 'Admin']), async (req, res) => {
   try {
     const workspaceId = (req as any).user.workspaceId;
     const { firstResponseTarget, resolutionTarget, workingHours } = req.body;

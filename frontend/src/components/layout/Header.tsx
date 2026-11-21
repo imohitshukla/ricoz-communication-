@@ -1,6 +1,7 @@
-import { Bell, Settings, ChevronDown, LogOut, Key, Phone, Camera, ShieldCheck, MessageSquare, Flame, Mail } from 'lucide-react';
+import { Bell, Settings, ChevronDown, LogOut, Key, Phone, Camera, ShieldCheck, MessageSquare, Flame, Mail, Building2, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 const CHANNELS = [
   {
@@ -64,9 +65,22 @@ const TICKERS = [
 ];
 
 export function Header() {
+  const { user, logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [tickerIdx, setTickerIdx] = useState(0);
   const navigate = useNavigate();
+
+  const userRole = user?.role || 'Admin';
+  const isAdmin = userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'owner';
+  const userName = user?.name || user?.email?.split('@')[0] || 'Team Member';
+  const userEmail = user?.email || 'admin@ricoz.io';
+  const initials = userName
+    .split(' ')
+    .filter(Boolean)
+    .map(n => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase() || 'TM';
 
   useEffect(() => {
     const id = setInterval(() => setTickerIdx(i => (i + 1) % TICKERS.length), 4000);
@@ -149,8 +163,8 @@ export function Header() {
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             className="flex items-center gap-1.5 pl-1 pr-2 py-1 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white font-black text-[10px] shadow-sm">
-              MS
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white font-black text-[10px] shadow-sm">
+              {initials}
             </div>
             <ChevronDown className="w-3 h-3 text-slate-400" />
           </button>
@@ -160,24 +174,28 @@ export function Header() {
               {/* Profile header */}
               <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white font-black text-sm shadow">
-                    MS
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white font-black text-sm shadow">
+                    {initials}
                   </div>
-                  <div>
-                    <p className="font-extrabold text-slate-900 text-sm leading-tight">Mohit Shukla</p>
-                    <p className="text-[11px] text-slate-500">mohit@ricoz.io</p>
+                  <div className="min-w-0">
+                    <p className="font-extrabold text-slate-900 text-sm leading-tight truncate">{userName}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{userEmail}</p>
                   </div>
                 </div>
                 <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2.5 py-1 rounded-lg w-fit">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Super Admin · All Omnichannel Access
+                  {userRole} · Omnichannel Workspace
                 </div>
               </div>
 
               {/* Links */}
               <div className="p-2 space-y-0.5">
                 {[
-                  { icon: Key, label: 'API Keys & Credentials', color: 'text-amber-500', path: '/dashboard/api-hub' },
+                  { icon: Users, label: 'Team Members & Roster', color: 'text-teal-600', path: '/dashboard/team' },
+                  ...(isAdmin ? [
+                    { icon: Building2, label: 'Org & HR Admin Access', color: 'text-emerald-600', path: '/dashboard/organization' },
+                    { icon: Key, label: 'API Keys & Credentials', color: 'text-amber-500', path: '/dashboard/api-hub' },
+                  ] : []),
                   { icon: Settings, label: 'Billing & Subscription', color: 'text-indigo-500', path: '/dashboard/billing' },
                 ].map(item => (
                   <button
@@ -194,7 +212,10 @@ export function Header() {
               {/* Logout */}
               <div className="p-2 border-t border-slate-100">
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    logout();
+                  }}
                   className="w-full flex items-center justify-center gap-2 text-rose-600 bg-rose-50 hover:bg-rose-100 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />

@@ -23,6 +23,7 @@ import { VoiceAI } from './pages/Automation/VoiceAI';
 
 import { PublicLayout } from './components/layout/PublicLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { RoleGuard } from './components/layout/RoleGuard';
 import { Landing } from './pages/Landing/Landing';
 import { Login } from './pages/Auth/Login';
 import { Signup } from './pages/Auth/Signup';
@@ -48,6 +49,7 @@ import { WhatsAppForms } from './pages/Automation/WhatsAppForms';
 import { WhatsAppLists } from './pages/Automation/WhatsAppLists';
 import { APIHub } from './pages/Settings/APIHub';
 import { EmailMarketing } from './pages/Email/EmailMarketing';
+import { OrganizationAdminPanel } from './pages/Admin/OrganizationAdminPanel';
 
 function App() {
   return (
@@ -81,7 +83,11 @@ function App() {
           <Route path="rcs" element={<RCSStudio />} />
           <Route path="voice" element={<ColdCallingHub />} />
           <Route path="instagram" element={<InstagramStudio />} />
-          <Route path="api-hub" element={<APIHub />} />
+          <Route path="api-hub" element={
+            <RoleGuard allowedRoles={['Owner', 'Admin']}>
+              <APIHub />
+            </RoleGuard>
+          } />
           <Route path="flow-builder" element={<JourneyBuilder />} />
           <Route path="agents" element={<Agents />} />
           <Route path="automation/basic" element={<BasicAutomations />} />
@@ -96,6 +102,16 @@ function App() {
           <Route path="commerce" element={<Commerce />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="team" element={<Team />} />
+          <Route path="organization" element={
+            <RoleGuard allowedRoles={['Owner', 'Admin']}>
+              <OrganizationAdminPanel />
+            </RoleGuard>
+          } />
+          <Route path="admin" element={
+            <RoleGuard allowedRoles={['Owner', 'Admin']}>
+              <OrganizationAdminPanel />
+            </RoleGuard>
+          } />
           <Route path="integrations" element={<Integrations />} />
           <Route path="settings" element={<Settings />} />
           <Route path="billing" element={<Billing />} />

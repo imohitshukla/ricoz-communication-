@@ -67,6 +67,7 @@ import { integrationsRouter } from './routes/integrations';
 import { smsRouter } from './routes/sms';
 import authRoutes from './routes/auth';
 import { emailRouter } from './routes/email';
+import { organizationRouter } from './routes/organization';
 import { testSmtpConnection } from './services/emailService';
 
 
@@ -109,6 +110,7 @@ app.use('/api/instagram', instagramRouter);
 app.use('/api/integrations', integrationsRouter);
 app.use('/api/sms', smsRouter);
 app.use('/api/email', emailRouter);
+app.use('/api/organization', organizationRouter);
 
 
 

@@ -2,7 +2,10 @@ import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:qrgzOLMITztpNZLsvWeCkOsMJqtzPzfA@switchyard.proxy.rlwy.net:49350/railway';
+const rawDbUrl = process.env.DATABASE_URL;
+// When Prisma schema is configured for sqlite, only pass datasource URL if it uses 'file:'
+const isPostgresUrl = rawDbUrl && rawDbUrl.startsWith('postgresql:');
+const dbUrl = isPostgresUrl ? undefined : rawDbUrl;
 
 // Singleton: prevents multiple PrismaClient instances from being created
 // which would exhaust the DB connection pool on Railway free tier.
