@@ -41,15 +41,15 @@ teamRouter.get('/members', async (req, res) => {
       orderBy: { createdAt: 'asc' }
     });
 
-    // Augment with activity / resolution metrics
-    const members = users.map((u, idx) => ({
+    // Real team member workload (clean 0 counts for fresh launch)
+    const members = users.map((u) => ({
       id: u.id,
       name: u.name,
       email: u.email,
       role: u.role || 'Agent',
-      status: idx % 4 === 3 ? 'Away' : 'Online',
-      assigned: Math.floor(Math.random() * 10) + 2,
-      resolved: Math.floor(Math.random() * 80) + 20,
+      status: 'Online',
+      assigned: 0,
+      resolved: 0,
       createdAt: u.createdAt
     }));
 

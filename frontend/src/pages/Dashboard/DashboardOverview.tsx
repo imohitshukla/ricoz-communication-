@@ -143,23 +143,17 @@ export function DashboardOverview() {
         throw new Error('No data');
       }
     } catch (e: any) {
-      // Graceful demo fallback so dashboard always displays rich presentation
+      // Clean zeroed fallback for initial launch
       setStats({
-        totalContacts: 1420,
-        totalSentMessages: 3970,
-        activeConversations: 24,
-        totalMessages: 8733,
-        botMessages: 3965,
-        totalCampaigns: 5,
-        autoReplyRules: 8,
-        avgResponseSeconds: 8,
-        activityFeed: [
-          { text: 'AI Agent resolved inquiry on WhatsApp (+91 98201 44211)', time: '3m ago', type: 'bot' },
-          { text: 'Google RCS carousel card interaction confirmed', time: '14m ago', type: 'inbound' },
-          { text: 'Instagram viral comment trigger sent automated DM', time: '28m ago', type: 'bot' },
-          { text: 'AI Voice Dialer completed qualification call', time: '45m ago', type: 'agent' },
-          { text: 'Product Launch Blast email campaign sent to VIPs', time: '1h ago', type: 'agent' }
-        ]
+        totalContacts: 0,
+        totalSentMessages: 0,
+        activeConversations: 0,
+        totalMessages: 0,
+        botMessages: 0,
+        totalCampaigns: 0,
+        autoReplyRules: 0,
+        avgResponseSeconds: null,
+        activityFeed: []
       });
     } finally {
       setLoading(false);
