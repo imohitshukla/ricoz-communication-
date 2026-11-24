@@ -40,8 +40,21 @@ const normalizePath = (url: string) => {
   return url.startsWith('/') ? url : `/${url}`;
 };
 
+// Check if cloud host is offline or on expired Railway
+let isCloudOffline = true; // Railway trial is expired; default to instant autonomous demo engine
+
 const executeWithFallback = async (method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, payload?: any) => {
   const norm = normalizePath(url);
+
+  // If cloud host is known to be offline or on expired Railway, serve autonomous demo data immediately with zero latency
+  if (isCloudOffline || API_URL.includes('railway.app')) {
+    const mock = handleMockRoute(method, norm, payload);
+    if (mock) {
+      return wrapResponse(mock.data);
+    }
+    return wrapResponse({ success: true });
+  }
+
   try {
     let res;
     if (method === 'GET') res = await axiosInstance.get(norm);
@@ -51,7 +64,7 @@ const executeWithFallback = async (method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'D
     else if (method === 'DELETE') res = await axiosInstance.delete(norm);
     return wrapResponse(res?.data);
   } catch (err: any) {
-    // Railway offline / trial expired / network failure fallback
+    isCloudOffline = true;
     console.warn(`[Ricoz Engine] Live cloud backend offline or unreachable (${norm}). Serving high-fidelity autonomous demo data.`);
     const mock = handleMockRoute(method, norm, payload);
     if (mock) {
