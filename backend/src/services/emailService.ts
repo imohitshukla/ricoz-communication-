@@ -3,15 +3,29 @@ import nodemailer from 'nodemailer';
 import axios from 'axios';
 
 // -----------------------------------------------------------------
-// Production Email Service — Priority Chain:
-//   1. Resend API (production — custom domains, tracking, webhooks)
-//   2. Mailtrap API (staging — sandbox testing)
-//   3. Ethereal (dev fallback — free preview URLs)
+// Modular Multi-Provider Email Service (100% Free Tiers Supported)
+//
+// Free Provider Priority Chain:
+//   1. Brevo / Sendinblue (100% Free: 300 emails/day = 9,000/month, Inbox delivery, DKIM)
+//   2. Mailjet (100% Free: 200 emails/day = 6,000/month)
+//   3. Resend (Free Tier: 100 emails/day = 3,000/month)
+//   4. Custom SMTP Relay (Any free or private SMTP server, e.g. Brevo SMTP / Gmail)
+//   5. Mailtrap (Staging Sandbox testing)
+//   6. Ethereal (Dev fallback preview URLs)
 // -----------------------------------------------------------------
 
+const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
+const MAILJET_API_KEY = process.env.MAILJET_API_KEY || '';
+const MAILJET_SECRET_KEY = process.env.MAILJET_SECRET_KEY || '';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const MAILTRAP_API_TOKEN = process.env.SMTP_PASS || '';
-const FROM_ADDRESS = process.env.SMTP_FROM || 'hello@demomailtrap.com';
+
+const SMTP_HOST = process.env.SMTP_HOST || '';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+const SMTP_USER = process.env.SMTP_USER || '';
+const SMTP_PASS = process.env.SMTP_PASS || '';
+const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
+
+const FROM_ADDRESS = process.env.SMTP_FROM || 'hello@ricoz.io';
 const FROM_NAME = 'Ricoz Communication';
 
 // Parse "Name <email>" format
@@ -22,15 +36,110 @@ function parseFrom(from: string): { name: string; email: string } {
 }
 
 // -----------------------------------------------------------------
-// Provider 1: Resend (Production)
+// Provider 1: Brevo (Sendinblue) — 300 Free Emails / Day (9,000 / Month)
+// -----------------------------------------------------------------
+async function sendViaBrevo(options: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  replyTo?: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  if (!BREVO_API_KEY) return { success: false, error: 'BREVO_API_KEY not configured' };
+
+  const from = parseFrom(FROM_ADDRESS);
+  const recipients = Array.isArray(options.to)
+    ? options.to.map(email => ({ email }))
+    : [{ email: options.to }];
+
+  try {
+    const payload: any = {
+      sender: { name: from.name, email: from.email },
+      to: recipients,
+      subject: options.subject,
+      htmlContent: options.html,
+    };
+
+    if (options.replyTo) {
+      payload.replyTo = { email: options.replyTo };
+    }
+
+    const response = await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      payload,
+      {
+        headers: {
+          'api-key': BREVO_API_KEY,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 12000
+      }
+    );
+
+    const messageId = response.data?.messageId || response.data?.messageIds?.[0];
+    return { success: true, messageId };
+  } catch (err: any) {
+    const msg = err.response?.data?.message || err.message;
+    return { success: false, error: msg };
+  }
+}
+
+// -----------------------------------------------------------------
+// Provider 2: Mailjet — 200 Free Emails / Day (6,000 / Month)
+// -----------------------------------------------------------------
+async function sendViaMailjet(options: {
+  to: string | string[];
+  subject: string;
+  html: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  if (!MAILJET_API_KEY || !MAILJET_SECRET_KEY) {
+    return { success: false, error: 'Mailjet API key or Secret key not configured' };
+  }
+
+  const from = parseFrom(FROM_ADDRESS);
+  const toList = Array.isArray(options.to)
+    ? options.to.map(e => ({ Email: e }))
+    : [{ Email: options.to }];
+
+  const authHeader = 'Basic ' + Buffer.from(`${MAILJET_API_KEY}:${MAILJET_SECRET_KEY}`).toString('base64');
+
+  try {
+    const response = await axios.post(
+      'https://api.mailjet.com/v3.1/send',
+      {
+        Messages: [
+          {
+            From: { Email: from.email, Name: from.name },
+            To: toList,
+            Subject: options.subject,
+            HTMLPart: options.html
+          }
+        ]
+      },
+      {
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/json'
+        },
+        timeout: 12000
+      }
+    );
+
+    const messageId = response.data?.Messages?.[0]?.To?.[0]?.MessageID?.toString();
+    return { success: true, messageId };
+  } catch (err: any) {
+    const msg = err.response?.data?.ErrorMessage || err.message;
+    return { success: false, error: msg };
+  }
+}
+
+// -----------------------------------------------------------------
+// Provider 3: Resend (100 Free Emails / Day, 3,000 / Month)
 // -----------------------------------------------------------------
 let _resend: Resend | null = null;
-
 function getResendClient(): Resend | null {
   if (!RESEND_API_KEY) return null;
-  if (!_resend) {
-    _resend = new Resend(RESEND_API_KEY);
-  }
+  if (!_resend) _resend = new Resend(RESEND_API_KEY);
   return _resend;
 }
 
@@ -55,10 +164,7 @@ async function sendViaResend(options: {
       tags: options.tags,
     });
 
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
+    if (error) return { success: false, error: error.message };
     return { success: true, messageId: data?.id };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -66,7 +172,47 @@ async function sendViaResend(options: {
 }
 
 // -----------------------------------------------------------------
-// Provider 2: Mailtrap HTTP API (Staging/Testing)
+// Provider 4: Standard Custom SMTP (Brevo SMTP / Gmail / Private Postfix)
+// -----------------------------------------------------------------
+let _smtpTransporter: any = null;
+
+function getSmtpTransporter() {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  if (!_smtpTransporter) {
+    _smtpTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+  }
+  return _smtpTransporter;
+}
+
+async function sendViaSmtp(options: {
+  to: string | string[];
+  subject: string;
+  html: string;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const transporter = getSmtpTransporter();
+  if (!transporter) return { success: false, error: 'SMTP credentials not configured' };
+
+  const from = parseFrom(FROM_ADDRESS);
+  try {
+    const info = await transporter.sendMail({
+      from: `"${from.name}" <${from.email}>`,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// -----------------------------------------------------------------
+// Provider 5: Mailtrap (Staging Sandbox)
 // -----------------------------------------------------------------
 async function sendViaMailtrapAPI(options: {
   to: string;
@@ -88,10 +234,10 @@ async function sendViaMailtrapAPI(options: {
       },
       {
         headers: {
-          Authorization: `Bearer ${MAILTRAP_API_TOKEN}`,
+          Authorization: `Bearer ${SMTP_PASS}`,
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+        timeout: 10000,
       }
     );
     return { success: true, messageId: response.data?.message_ids?.[0] || 'sent' };
@@ -102,7 +248,7 @@ async function sendViaMailtrapAPI(options: {
 }
 
 // -----------------------------------------------------------------
-// Provider 3: Ethereal (Dev fallback)
+// Provider 6: Ethereal (Dev fallback preview URLs)
 // -----------------------------------------------------------------
 let _etherealTransporter: any = null;
 
@@ -114,7 +260,6 @@ async function sendViaEthereal(options: {
   if (!_etherealTransporter) {
     console.log('[EmailService] Creating free Ethereal test account...');
     const testAccount = await nodemailer.createTestAccount();
-    console.log(`[EmailService] ✅ Ethereal account: ${testAccount.user}`);
     _etherealTransporter = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
@@ -131,19 +276,16 @@ async function sendViaEthereal(options: {
       html: options.html,
     });
     const previewUrl = nodemailer.getTestMessageUrl(info) as string;
-    console.log('\n────────────────────────────────────────────────────────');
-    console.log('📧 EMAIL PREVIEW → open in browser:');
-    console.log(`👉  ${previewUrl}`);
-    console.log('────────────────────────────────────────────────────────\n');
     return { success: true, previewUrl };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
 }
 
-// -----------------------------------------------------------------
-// Unified send — cascading priority
-// -----------------------------------------------------------------
+/**
+ * Unified send function with cascading automatic failover:
+ *   Brevo (300/day free) ➔ Mailjet (200/day free) ➔ Resend (100/day) ➔ Custom SMTP ➔ Mailtrap ➔ Ethereal
+ */
 export async function sendEmail(options: {
   to: string | string[];
   subject: string;
@@ -151,40 +293,55 @@ export async function sendEmail(options: {
   replyTo?: string;
   tags?: { name: string; value: string }[];
 }) {
-  // 1. Try Resend (production)
+  // 1. Try Brevo Free Tier (300 emails/day)
+  if (BREVO_API_KEY) {
+    console.log(`[EmailService] Sending via Brevo Free API → ${options.to}`);
+    const res = await sendViaBrevo(options);
+    if (res.success) return { ...res, provider: 'brevo' };
+    console.warn(`[EmailService] Brevo failed (${res.error}), trying fallback...`);
+  }
+
+  // 2. Try Mailjet Free Tier (200 emails/day)
+  if (MAILJET_API_KEY && MAILJET_SECRET_KEY) {
+    console.log(`[EmailService] Sending via Mailjet Free API → ${options.to}`);
+    const res = await sendViaMailjet(options);
+    if (res.success) return { ...res, provider: 'mailjet' };
+    console.warn(`[EmailService] Mailjet failed (${res.error}), trying fallback...`);
+  }
+
+  // 3. Try Resend
   if (RESEND_API_KEY) {
     console.log(`[EmailService] Sending via Resend API → ${options.to}`);
-    try {
-      const res = await sendViaResend(options);
-      if (res.success) return { ...res, provider: 'resend' };
-      console.warn(`[EmailService] Resend failed (${res.error}), trying fallback...`);
-    } catch (err: any) {
-      console.warn(`[EmailService] Resend exception: ${err.message}`);
-    }
+    const res = await sendViaResend(options);
+    if (res.success) return { ...res, provider: 'resend' };
+    console.warn(`[EmailService] Resend failed (${res.error}), trying fallback...`);
   }
 
-  // 2. Try Mailtrap (staging)
+  // 4. Try Custom SMTP Relay (e.g. Brevo SMTP / Custom relay)
+  if (SMTP_HOST && SMTP_USER && SMTP_PASS && !SMTP_HOST.includes('mailtrap')) {
+    console.log(`[EmailService] Sending via SMTP Relay (${SMTP_HOST}) → ${options.to}`);
+    const res = await sendViaSmtp(options);
+    if (res.success) return { ...res, provider: `smtp (${SMTP_HOST})` };
+    console.warn(`[EmailService] Custom SMTP failed (${res.error}), trying fallback...`);
+  }
+
+  // 5. Try Mailtrap (Staging Sandbox)
   const toStr = Array.isArray(options.to) ? options.to[0] : options.to;
-  if (MAILTRAP_API_TOKEN) {
-    console.log(`[EmailService] Sending via Mailtrap API → ${toStr}`);
-    try {
-      const res = await sendViaMailtrapAPI({ to: toStr, subject: options.subject, html: options.html });
-      if (res.success) return { ...res, provider: 'mailtrap' };
-      console.warn(`[EmailService] Mailtrap failed (${res.error}), falling back to Ethereal`);
-    } catch (err: any) {
-      console.warn(`[EmailService] Mailtrap exception: ${err.message}`);
-    }
+  if (SMTP_HOST.includes('mailtrap') && SMTP_PASS) {
+    console.log(`[EmailService] Sending via Mailtrap sandbox → ${toStr}`);
+    const res = await sendViaMailtrapAPI({ to: toStr, subject: options.subject, html: options.html });
+    if (res.success) return { ...res, provider: 'mailtrap' };
   }
 
-  // 3. Ethereal (dev)
-  console.log('[EmailService] Using Ethereal preview inbox');
+  // 6. Ethereal (Dev)
+  console.log('[EmailService] Using free Ethereal test inbox fallback');
   const res = await sendViaEthereal({ to: toStr, subject: options.subject, html: options.html });
   return { ...res, provider: 'ethereal' };
 }
 
-// -----------------------------------------------------------------
-// Batch send for campaigns
-// -----------------------------------------------------------------
+/**
+ * Batch email sender for campaigns
+ */
 export async function sendBatchEmails(
   recipients: { to: string; subject: string; html: string }[],
   onProgress?: (sent: number, total: number) => void
@@ -193,244 +350,110 @@ export async function sendBatchEmails(
   let failed = 0;
   const errors: string[] = [];
 
-  // Resend supports batch API natively
-  if (RESEND_API_KEY) {
-    const client = getResendClient();
-    if (client) {
-      // Resend batch endpoint: up to 100 emails per call
-      const batches = [];
-      for (let i = 0; i < recipients.length; i += 100) {
-        batches.push(recipients.slice(i, i + 100));
-      }
-
-      for (const batch of batches) {
-        try {
-          const from = parseFrom(FROM_ADDRESS);
-          const { data, error } = await client.batch.send(
-            batch.map(r => ({
-              from: `${from.name} <${from.email}>`,
-              to: [r.to],
-              subject: r.subject,
-              html: r.html,
-            }))
-          );
-
-          if (error) {
-            failed += batch.length;
-            errors.push(error.message);
-          } else {
-            delivered += batch.length;
-          }
-        } catch (err: any) {
-          failed += batch.length;
-          errors.push(err.message);
-        }
-        if (onProgress) onProgress(delivered + failed, recipients.length);
-      }
-
-      return { delivered, failed, errors };
-    }
-  }
-
-  // Fallback: sequential send
-  for (const r of recipients) {
+  for (let i = 0; i < recipients.length; i++) {
+    const item = recipients[i];
     try {
-      const result = await sendEmail(r);
-      if (result.success) delivered++;
+      const res = await sendEmail({ to: item.to, subject: item.subject, html: item.html });
+      if (res.success) delivered++;
       else {
         failed++;
-        errors.push(`${r.to}: ${(result as any).error}`);
+        errors.push(`Failed for ${item.to}: ${res.error}`);
       }
-    } catch (err: any) {
+    } catch (e: any) {
       failed++;
-      errors.push(`${r.to}: ${err.message}`);
+      errors.push(`Failed for ${item.to}: ${e.message}`);
     }
-    if (onProgress) onProgress(delivered + failed, recipients.length);
+    if (onProgress) onProgress(i + 1, recipients.length);
   }
 
   return { delivered, failed, errors };
 }
 
-// -----------------------------------------------------------------
-// Team Invite Email
-// -----------------------------------------------------------------
-export async function sendTeamInviteEmail(options: {
+/**
+ * Send Team Invitation Email with temporary credentials
+ */
+export async function sendTeamInviteEmail(params: {
   toEmail: string;
   toName: string;
   inviterName: string;
   workspaceName: string;
-  tempPassword: string;
+  tempPassword?: string;
   loginUrl?: string;
-}) {
-  const {
-    toEmail, toName, inviterName, workspaceName, tempPassword,
-    loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
-  } = options;
+}): Promise<{ success: boolean; error?: string }> {
+  const loginUrl = params.loginUrl || process.env.FRONTEND_URL || 'http://localhost:5173/login';
 
   const html = `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-    <style>
-      body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f6f9;margin:0;padding:0}
-      .container{max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)}
-      .header{background:linear-gradient(135deg,#6C63FF 0%,#4FACFE 100%);padding:40px 32px;text-align:center}
-      .header h1{color:#fff;margin:0;font-size:26px;font-weight:700}
-      .header p{color:rgba(255,255,255,.85);margin:8px 0 0;font-size:14px}
-      .body{padding:36px 32px}
-      .body p{color:#374151;line-height:1.7;font-size:15px}
-      .cred-box{background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:20px 24px;margin:24px 0}
-      .cred-box .label{font-size:12px;color:#6366f1;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-      .cred-box .value{font-size:16px;color:#1e293b;font-weight:600;margin-top:4px;word-break:break-all}
-      .btn{display:inline-block;margin-top:24px;padding:14px 32px;background:linear-gradient(135deg,#6C63FF,#4FACFE);color:#fff!important;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px}
-      .footer{padding:20px 32px;text-align:center;background:#f8fafc;border-top:1px solid #e2e8f0}
-      .footer p{color:#94a3b8;font-size:12px;margin:0}
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h1>🚀 You're Invited to Ricoz</h1>
-        <p>Your workspace invitation is here</p>
-      </div>
-      <div class="body">
-        <p>Hi <strong>${toName}</strong>,</p>
-        <p><strong>${inviterName}</strong> has invited you to join the <strong>${workspaceName}</strong> workspace on Ricoz Communication.</p>
-        <p>Here are your login credentials to get started:</p>
-        <div class="cred-box">
-          <div class="label">Email</div>
-          <div class="value">${toEmail}</div>
-        </div>
-        <div class="cred-box">
-          <div class="label">Temporary Password</div>
-          <div class="value">${tempPassword}</div>
-        </div>
-        <p style="color:#ef4444;font-size:13px">⚠️ Please change your password immediately after your first login.</p>
-        <a href="${loginUrl}" class="btn">Login to Ricoz →</a>
-        <p style="margin-top:32px;font-size:13px;color:#94a3b8">If you weren't expecting this invitation, you can safely ignore this email.</p>
-      </div>
-      <div class="footer">
-        <p>© ${new Date().getFullYear()} Ricoz Communication. All rights reserved.</p>
-      </div>
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>You're invited to Ricoz Communication</title></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 20px;">
+  <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 36px;">
+    <h2 style="margin: 0 0 16px; color: #0f172a; font-size: 20px; font-weight: 800;">Welcome to ${params.workspaceName}</h2>
+    <p style="margin: 0 0 24px; color: #475569; font-size: 14px; line-height: 1.6;">
+      ${params.inviterName} has invited you to join the <strong>${params.workspaceName}</strong> workspace on Ricoz Communication.
+    </p>
+
+    <div style="background-color: #f1f5f9; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+      <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Your Login Email</div>
+      <div style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 16px;">${params.toEmail}</div>
+      ${params.tempPassword ? `
+      <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Temporary Password</div>
+      <div style="font-size: 15px; font-family: monospace; font-weight: 700; color: #059669; letter-spacing: 0.5px;">${params.tempPassword}</div>
+      ` : ''}
     </div>
-  </body>
-  </html>`;
+
+    <a href="${loginUrl}" style="display: block; width: 100%; text-align: center; background: #00a688; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 14px 0; border-radius: 10px;">
+      Log In to Workspace →
+    </a>
+  </div>
+</body>
+</html>
+  `;
 
   return sendEmail({
-    to: toEmail,
-    subject: `You've been invited to ${workspaceName} on Ricoz`,
+    to: params.toEmail,
+    subject: `You're invited to join ${params.workspaceName} on Ricoz`,
     html,
   });
 }
 
-// -----------------------------------------------------------------
-// Password Reset Email
-// -----------------------------------------------------------------
-export async function sendPasswordResetEmail(options: {
-  toEmail: string;
-  toName: string;
-  resetToken: string;
-}) {
-  const { toEmail, toName, resetToken } = options;
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
-
-  const html = `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8"/>
-    <style>
-      body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f6f9;margin:0;padding:0}
-      .container{max-width:600px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)}
-      .header{background:linear-gradient(135deg,#FF6584 0%,#FF9A5C 100%);padding:40px 32px;text-align:center}
-      .header h1{color:#fff;margin:0;font-size:26px;font-weight:700}
-      .body{padding:36px 32px}
-      .body p{color:#374151;line-height:1.7;font-size:15px}
-      .btn{display:inline-block;margin-top:24px;padding:14px 32px;background:linear-gradient(135deg,#FF6584,#FF9A5C);color:#fff!important;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px}
-      .footer{padding:20px 32px;text-align:center;background:#f8fafc;border-top:1px solid #e2e8f0}
-      .footer p{color:#94a3b8;font-size:12px;margin:0}
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header"><h1>🔐 Reset Your Password</h1></div>
-      <div class="body">
-        <p>Hi <strong>${toName}</strong>,</p>
-        <p>We received a request to reset your Ricoz account password. Click the button below. This link expires in <strong>1 hour</strong>.</p>
-        <a href="${resetUrl}" class="btn">Reset Password →</a>
-        <p style="margin-top:32px;font-size:13px;color:#94a3b8">If you didn't request this, ignore this email.</p>
-      </div>
-      <div class="footer">
-        <p>© ${new Date().getFullYear()} Ricoz Communication. All rights reserved.</p>
-      </div>
-    </div>
-  </body>
-  </html>`;
-
-  return sendEmail({
-    to: toEmail,
-    subject: 'Reset your Ricoz password',
-    html,
-  });
-}
-
-// -----------------------------------------------------------------
-// Connection Test
-// -----------------------------------------------------------------
-export async function testSmtpConnection(): Promise<{ success: boolean; message: string; mode?: string }> {
-  // 1. Check Resend
-  if (RESEND_API_KEY) {
-    try {
-      const client = getResendClient();
-      if (client) {
-        const { data } = await client.domains.list();
-        return {
-          success: true,
-          message: `Resend API connected ✅ — ${data?.data?.length || 0} domain(s) configured`,
-          mode: 'resend-production',
-        };
-      }
-    } catch (err: any) {
-      // Even if domain list fails, API key might still work for sending
-      return {
-        success: true,
-        message: 'Resend API key configured ✅ — Ready to send',
-        mode: 'resend-production',
-      };
-    }
-  }
-
-  // 2. Check Mailtrap
-  if (MAILTRAP_API_TOKEN) {
-    try {
-      await axios.get('https://mailtrap.io/api/accounts', {
-        headers: { Authorization: `Bearer ${MAILTRAP_API_TOKEN}` },
-        timeout: 10000,
-      });
-      return { success: true, message: 'Mailtrap API connection verified ✅', mode: 'mailtrap-staging' };
-    } catch (err: any) {
-      const status = err.response?.status;
-      if (status === 403 || status === 200) {
-        return { success: true, message: 'Mailtrap API reachable ✅', mode: 'mailtrap-staging' };
-      }
-    }
-  }
-
-  // 3. Ethereal fallback
-  return { success: true, message: 'Using Ethereal test inbox mode for dev ✅', mode: 'ethereal-dev' };
-}
-
-// -----------------------------------------------------------------
-// Get current email provider info (for integration status page)
-// -----------------------------------------------------------------
+/**
+ * Get active provider diagnostics (safe for frontend)
+ */
 export function getEmailProviderInfo() {
-  if (RESEND_API_KEY) {
-    return { provider: 'Resend', mode: 'production', configured: true };
+  let activeProvider = 'Ethereal (Dev Sandbox)';
+  let quota = 'Unlimited Dev Preview';
+
+  if (BREVO_API_KEY) {
+    activeProvider = 'Brevo (Sendinblue Free)';
+    quota = '300 emails/day (9,000/mo Free)';
+  } else if (MAILJET_API_KEY && MAILJET_SECRET_KEY) {
+    activeProvider = 'Mailjet Free';
+    quota = '200 emails/day (6,000/mo Free)';
+  } else if (RESEND_API_KEY) {
+    activeProvider = 'Resend Free';
+    quota = '100 emails/day (3,000/mo Free)';
+  } else if (SMTP_HOST && SMTP_USER) {
+    activeProvider = `Custom SMTP (${SMTP_HOST})`;
+    quota = 'Custom Server Quota';
   }
-  if (MAILTRAP_API_TOKEN) {
-    return { provider: 'Mailtrap', mode: 'staging', configured: true };
+
+  return {
+    configured: Boolean(BREVO_API_KEY || (MAILJET_API_KEY && MAILJET_SECRET_KEY) || RESEND_API_KEY || (SMTP_HOST && SMTP_USER)),
+    provider: activeProvider,
+    freeQuota: quota,
+    fromAddress: FROM_ADDRESS,
+  };
+}
+
+export async function testSmtpConnection(): Promise<{ success: boolean; message: string }> {
+  try {
+    const info = getEmailProviderInfo();
+    return {
+      success: info.configured,
+      message: info.configured ? `Active email engine: ${info.provider}` : 'Running on Ethereal test inbox'
+    };
+  } catch (err: any) {
+    return { success: false, message: err.message };
   }
-  return { provider: 'Ethereal', mode: 'development', configured: false };
 }

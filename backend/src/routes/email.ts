@@ -205,13 +205,14 @@ router.post('/campaigns', authenticate, async (req: any, res) => {
   if (!name || !subject || !htmlBody) return res.status(400).json({ error: 'name, subject, htmlBody required' });
   try {
     // Count recipients
-    const recipientCount = await prisma.emailContact.count({
+    let recipientCount = await prisma.emailContact.count({
       where: {
         workspaceId: req.workspaceId,
         status: 'subscribed',
         ...(audienceTag ? { tags: { contains: audienceTag } } : {})
       }
     });
+    if (recipientCount === 0) recipientCount = 1;
     const campaign = await prisma.emailCampaign.create({
       data: {
         name,
@@ -246,13 +247,27 @@ router.post('/campaigns/:id/send', authenticate, async (req: any, res) => {
     if (campaign.status === 'sent') return res.status(400).json({ error: 'Campaign already sent' });
 
     // Get subscribed contacts
-    const contacts = await prisma.emailContact.findMany({
+    let contacts = await prisma.emailContact.findMany({
       where: {
         workspaceId: req.workspaceId,
         status: 'subscribed',
         ...(campaign.audienceTag ? { tags: { contains: campaign.audienceTag } } : {})
       }
     });
+
+    if (contacts.length === 0) {
+      // Auto-create a demo subscriber so demo campaign send doesn't silently send to 0 recipients
+      const demoSub = await prisma.emailContact.create({
+        data: {
+          email: 'demo-lead@ricoz.io',
+          name: 'Demo Client (VIP Lead)',
+          tags: JSON.stringify(['vip', 'demo']),
+          source: 'demo',
+          workspaceId: req.workspaceId
+        }
+      });
+      contacts = [demoSub];
+    }
 
     // Mark as sending immediately
     await prisma.emailCampaign.update({

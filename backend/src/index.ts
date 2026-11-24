@@ -164,6 +164,37 @@ io.on('connection', (socket) => {
     }
   });
 
+  // WebRTC 100% Free Browser-to-Browser Audio Signaling
+  socket.on('webrtc:join_voice_room', (roomId: string) => {
+    socket.join(`voice_room_${roomId}`);
+    socket.to(`voice_room_${roomId}`).emit('webrtc:user_joined', { socketId: socket.id });
+  });
+
+  socket.on('webrtc:call_user', (data: { userToCall: string; signalData: any; from: string; callerName?: string }) => {
+    io.to(data.userToCall).emit('webrtc:incoming_call', {
+      signal: data.signalData,
+      from: data.from || socket.id,
+      callerName: data.callerName || 'Customer / Agent'
+    });
+  });
+
+  socket.on('webrtc:answer_call', (data: { to: string; signal: any }) => {
+    io.to(data.to).emit('webrtc:call_accepted', data.signal);
+  });
+
+  socket.on('webrtc:ice_candidate', (data: { to: string; candidate: any }) => {
+    io.to(data.to).emit('webrtc:ice_candidate', { candidate: data.candidate, from: socket.id });
+  });
+
+  socket.on('webrtc:end_call', (data: { to?: string; roomId?: string }) => {
+    if (data.to) {
+      io.to(data.to).emit('webrtc:call_ended');
+    }
+    if (data.roomId) {
+      socket.to(`voice_room_${data.roomId}`).emit('webrtc:call_ended');
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });

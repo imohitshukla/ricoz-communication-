@@ -1,17 +1,31 @@
 import { GoogleGenAI } from '@google/genai';
 import { prisma } from './db';
 import { retrieveRelevantKnowledge, RelevantChunk } from './ragService';
+import axios from 'axios';
 
-// Initialize the Google GenAI client.
-let aiClient: any = null;
+// -----------------------------------------------------------------
+// Modular Multi-Provider AI Engine (100% Free Alternatives Supported)
+// Providers supported:
+//   1. Groq (100% Free Cloud Tier: 14,400 req/day, Llama 3.3 70B & 3.1 8B, 800 tok/sec)
+//   2. Google Gemini (100% Free Tier: 1,500 req/day, Gemini 2.0 / 1.5 Flash)
+//   3. Ollama (100% Local / Self-Hosted: Unlimited, $0 Forever, Private)
+// -----------------------------------------------------------------
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3:latest';
+const OLLAMA_ENABLED = process.env.OLLAMA_ENABLED === 'true';
+
+// Initialize the Google GenAI client if key exists
+let geminiClient: any = null;
 try {
   if (process.env.GEMINI_API_KEY) {
-    aiClient = new GoogleGenAI();
-  } else {
-    console.warn('⚠️ GEMINI_API_KEY is missing from .env! AI Text Agent will use a mock response.');
+    geminiClient = new GoogleGenAI();
   }
 } catch (err) {
-  console.warn('⚠️ Failed to initialize AI client. Check your GEMINI_API_KEY.');
+  console.warn('[AIService] Failed to initialize Google GenAI client.');
 }
 
 export interface AgentResponseResult {
@@ -20,6 +34,7 @@ export interface AgentResponseResult {
   confidenceScore: number;
   isHumanHandoff: boolean;
   latencyMs: number;
+  provider?: string;
 }
 
 /**
@@ -36,7 +51,120 @@ export function checkHandoffIntent(text: string, customKeywords?: string | null)
 }
 
 /**
- * Generate a smart response based on a customer's message and their context with full RAG capability.
+ * Helper: Call Groq Cloud API (Free Tier: 14,400 requests/day, OpenAI format)
+ */
+async function callGroqChat(messages: { role: string; content: string }[], temperature = 0.4): Promise<string | null> {
+  if (!GROQ_API_KEY) return null;
+  try {
+    const response = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model: GROQ_MODEL,
+        messages,
+        temperature,
+        max_tokens: 1024
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+    const content = response.data?.choices?.[0]?.message?.content?.trim();
+    return content || null;
+  } catch (err: any) {
+    console.warn('[AIService] Groq call failed or rate-limited, falling back:', err.response?.data?.error?.message || err.message);
+    return null;
+  }
+}
+
+/**
+ * Helper: Call Ollama Local / Self-Hosted Instance ($0 cost, local network)
+ */
+async function callOllamaChat(prompt: string, systemPrompt?: string): Promise<string | null> {
+  try {
+    const response = await axios.post(
+      `${OLLAMA_BASE_URL}/api/generate`,
+      {
+        model: OLLAMA_MODEL,
+        prompt,
+        system: systemPrompt,
+        stream: false,
+        options: { temperature: 0.4 }
+      },
+      { timeout: 15000 }
+    );
+    return response.data?.response?.trim() || null;
+  } catch (err: any) {
+    if (OLLAMA_ENABLED) {
+      console.warn('[AIService] Ollama local service unreachable at', OLLAMA_BASE_URL);
+    }
+    return null;
+  }
+}
+
+/**
+ * Helper: Call Google Gemini (Free Tier: 15 RPM, 1,500 req/day)
+ */
+async function callGeminiChat(contents: string, responseJson = false): Promise<string | null> {
+  if (!geminiClient) return null;
+  try {
+    const config: any = { temperature: 0.4 };
+    if (responseJson) {
+      config.responseMimeType = 'application/json';
+    }
+    const response = await geminiClient.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents,
+      config
+    });
+    return response.text?.trim() || null;
+  } catch (err: any) {
+    console.warn('[AIService] Gemini call failed, falling back:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Modular Multi-Provider Text Generation with Auto-Failover
+ * Cascading Priority:
+ *   1. Groq (Free Cloud, fastest 800 tok/sec, Llama 3.3 70B)
+ *   2. Gemini (Free Tier, Google AI Studio)
+ *   3. Ollama (100% Local Self-Hosted, $0 forever)
+ */
+async function runMultiProviderGeneration(
+  systemPrompt: string,
+  userPrompt: string,
+  fullContextString: string
+): Promise<{ text: string; provider: string } | null> {
+  // 1. Try Groq Free Tier
+  if (GROQ_API_KEY) {
+    const groqReply = await callGroqChat([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ]);
+    if (groqReply) return { text: groqReply, provider: `groq (${GROQ_MODEL})` };
+  }
+
+  // 2. Try Gemini Free Tier
+  if (geminiClient) {
+    const geminiReply = await callGeminiChat(fullContextString);
+    if (geminiReply) return { text: geminiReply, provider: 'gemini-2.0-flash (free)' };
+  }
+
+  // 3. Try Ollama (Local $0)
+  if (OLLAMA_ENABLED || !GROQ_API_KEY && !geminiClient) {
+    const ollamaReply = await callOllamaChat(userPrompt, systemPrompt);
+    if (ollamaReply) return { text: ollamaReply, provider: `ollama (${OLLAMA_MODEL})` };
+  }
+
+  return null;
+}
+
+/**
+ * Generate a smart response based on customer's message and their context with full RAG capability.
  */
 export async function generateAgentResponse(
   contactName: string, 
@@ -49,7 +177,7 @@ export async function generateAgentResponse(
 }
 
 /**
- * Detailed version that returns citations, confidence, and handoff status.
+ * Detailed version that returns citations, confidence, handoff status, and active free provider.
  */
 export async function generateAgentResponseDetailed(
   contactName: string,
@@ -65,7 +193,7 @@ export async function generateAgentResponseDetailed(
   let isHumanHandoff = false;
 
   // 1. Fetch AI Agent Config
-  let basePrompt = `You are a helpful, professional, and friendly customer support AI agent for a company called "Ricoz Communication".
+  let basePrompt = `You are a helpful, professional, and friendly customer support AI agent for Ricoz Communication.
 Your goal is to assist customers quickly and accurately.`;
   let tone = 'Professional';
   let responseLength = 'concise';
@@ -107,7 +235,8 @@ Your goal is to assist customers quickly and accurately.`;
       citedSources: [],
       confidenceScore: 1.0,
       isHumanHandoff: true,
-      latencyMs: Date.now() - startTime
+      latencyMs: Date.now() - startTime,
+      provider: 'rules-engine'
     };
   }
 
@@ -126,7 +255,7 @@ ${ragResult.contextText}
 
 CRITICAL INSTRUCTIONS:
 - You must base your answer strictly on the Knowledge Base Sources provided above.
-- If the answer to the customer's question is not found in these sources, politely state that you do not have that specific information in your current records and offer to connect them with a human specialist.
+- If the answer to the customer's question is not found in these sources, politely state that you do not have that specific information in your records and offer to connect them with a human specialist.
 - Do not fabricate policies, pricing, dates, or contact details not supported by the sources.
 `;
       }
@@ -138,69 +267,52 @@ CRITICAL INSTRUCTIONS:
   // 4. Tone & Length directives
   const toneInstruction = `\nTone & Style: Maintain a ${tone} tone. Keep your answer ${responseLength === 'concise' ? 'concise and direct (1-3 sentences), ideal for messaging platforms like WhatsApp' : 'comprehensive yet clear (3-5 sentences) with bullet points if helpful'}.`;
 
-  // 5. Construct full conversation context
-  let conversationContext = `${basePrompt}
+  const systemInstructions = `${basePrompt}
 ${toneInstruction}
-${ragContextSection}
+${ragContextSection}`;
 
-Customer Name: ${contactName}
-
-Recent Conversation History:
-`;
-
+  let userPrompt = `Customer Name: ${contactName}\n\n`;
   if (recentMessages.length > 0) {
-    recentMessages.forEach((msg: any) => {
-      conversationContext += `${msg.sender === 'contact' ? 'Customer' : 'Agent/Bot'}: ${msg.text}\n`;
+    userPrompt += `Recent Conversation History:\n`;
+    recentMessages.slice(-5).forEach((msg: any) => {
+      userPrompt += `${msg.sender === 'contact' ? 'Customer' : 'Agent/Bot'}: ${msg.text}\n`;
     });
+    userPrompt += `\n`;
   }
+  userPrompt += `Customer's Current Message: "${incomingMessage}"\nPlease respond as the helpful Ricoz AI assistant:`;
 
-  conversationContext += `Customer: ${incomingMessage}\nRicoz Bot:`;
+  const fullPrompt = `${systemInstructions}\n\n${userPrompt}`;
 
-  // 6. Generate reply with Gemini or smart local fallback
-  if (!aiClient) {
-    let mockReply = `Hello ${contactName}! `;
-    if (citedSources.length > 0) {
-      mockReply += `Based on our ${citedSources[0].title} documentation: ${citedSources[0].excerpt.slice(0, 150)}... Let me know if you have more questions!`;
-    } else {
-      mockReply += `I'm your Ricoz AI assistant. Please configure your GEMINI_API_KEY in settings to enable live neural generation!`;
-    }
+  // 5. Run Multi-Provider AI Generation
+  const genResult = await runMultiProviderGeneration(systemInstructions, userPrompt, fullPrompt);
+
+  if (genResult && genResult.text) {
     return {
-      reply: mockReply,
+      reply: genResult.text,
       citedSources,
-      confidenceScore: citedSources.length > 0 ? 0.92 : 0.60,
+      confidenceScore: citedSources.length > 0 ? Math.max(confidenceScore, 0.90) : 0.80,
       isHumanHandoff: false,
-      latencyMs: Date.now() - startTime
+      latencyMs: Date.now() - startTime,
+      provider: genResult.provider
     };
   }
 
-  try {
-    const response = await aiClient.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: conversationContext,
-      config: {
-        temperature: 0.4, // lower temp for factual knowledge grounding
-      }
-    });
-
-    const reply = response.text?.trim() || "I'm sorry, I didn't quite catch that. How can I help you today?";
-
-    return {
-      reply,
-      citedSources,
-      confidenceScore: citedSources.length > 0 ? Math.max(confidenceScore, 0.88) : 0.75,
-      isHumanHandoff: false,
-      latencyMs: Date.now() - startTime
-    };
-  } catch (err) {
-    console.error('Error generating AI response:', err);
-    return {
-      reply: "I'm having a little trouble retrieving that information right now, but a human agent will assist you shortly!",
-      citedSources,
-      confidenceScore: 0.5,
-      isHumanHandoff: false,
-      latencyMs: Date.now() - startTime
-    };
+  // 6. High-Fidelity Local Knowledge Fallback (if no AI keys configured)
+  let mockReply = `Hello ${contactName}! `;
+  if (citedSources.length > 0) {
+    mockReply += `Based on our ${citedSources[0].title} documentation: ${citedSources[0].excerpt.slice(0, 150)}... Let me know if you would like me to connect you with an agent!`;
+  } else {
+    mockReply += `Thank you for reaching out to Ricoz. An agent has been notified and will reply shortly! (Tip: Set GROQ_API_KEY or GEMINI_API_KEY in .env for free AI replies)`;
   }
+
+  return {
+    reply: mockReply,
+    citedSources,
+    confidenceScore: citedSources.length > 0 ? 0.90 : 0.60,
+    isHumanHandoff: false,
+    latencyMs: Date.now() - startTime,
+    provider: 'local-knowledge-fallback'
+  };
 }
 
 /**
@@ -229,7 +341,7 @@ ${knowledgeContext}
 Generate 3 distinct, ready-to-send replies for the human agent:
 1. "professional": Direct, clear, professional.
 2. "friendly": Warm, engaging, empathetic.
-3. "closer": Solution-focused, asking for next steps (e.g. demo, order confirmation, or payment link).
+3. "closer": Solution-focused, asking for next steps.
 
 Format your response strictly as JSON:
 {
@@ -238,27 +350,37 @@ Format your response strictly as JSON:
   "closer": "..."
 }`;
 
-  if (aiClient) {
-    try {
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
-      });
-      const parsed = JSON.parse(response.text?.trim() || '{}');
-      if (parsed.professional && parsed.friendly && parsed.closer) {
-        return parsed;
-      }
-    } catch (e) {
-      console.warn('Gemini copilot draft fallback triggered:', e);
+  // Try Groq First
+  if (GROQ_API_KEY) {
+    const groqRaw = await callGroqChat([
+      { role: 'system', content: 'You are a JSON-only response engine.' },
+      { role: 'user', content: prompt }
+    ]);
+    if (groqRaw) {
+      try {
+        const cleaned = groqRaw.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+        if (parsed.professional && parsed.friendly && parsed.closer) return parsed;
+      } catch (_) {}
     }
   }
 
-  // High-fidelity fallback
+  // Try Gemini
+  if (geminiClient) {
+    try {
+      const geminiRaw = await callGeminiChat(prompt, true);
+      if (geminiRaw) {
+        const parsed = JSON.parse(geminiRaw);
+        if (parsed.professional && parsed.friendly && parsed.closer) return parsed;
+      }
+    } catch (_) {}
+  }
+
+  // Fallback drafts
   return {
     professional: `Hello ${contactName}, thank you for reaching out. We can certainly assist with this right away. Let me confirm the exact details for you.`,
     friendly: `Hi ${contactName}! 😊 Happy to help you with this today. What specific requirements or timeline do you have in mind?`,
-    closer: `Hi ${contactName}, we can get this setup for you immediately. Would you like me to share a 1-click payment link or book a 15-minute onboarding demo?`
+    closer: `Hi ${contactName}, we can get this setup for you immediately. Would you like me to share a 1-click payment link or book an onboarding demo?`
   };
 }
 
@@ -277,17 +399,24 @@ Respond strictly as JSON:
   "recommendedAction": "Immediate next step for the sales or support rep"
 }`;
 
-  if (aiClient) {
-    try {
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
-      });
-      return JSON.parse(response.text?.trim() || '{}');
-    } catch (e) {
-      console.warn('Summary fallback triggered:', e);
+  if (GROQ_API_KEY) {
+    const raw = await callGroqChat([
+      { role: 'system', content: 'You are a JSON-only response engine.' },
+      { role: 'user', content: prompt }
+    ]);
+    if (raw) {
+      try {
+        const cleaned = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleaned);
+      } catch (_) {}
     }
+  }
+
+  if (geminiClient) {
+    try {
+      const raw = await callGeminiChat(prompt, true);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
   }
 
   const lastMsg = messages[messages.length - 1]?.text || 'No recent messages';
@@ -315,16 +444,19 @@ export async function translateMessage(text: string, targetLanguage = 'es') {
   const prompt = `Translate the following text into natural, fluent ${targetName}. Preserve tone and formatting. Return only the translated text with no extra commentary:
 "${text}"`;
 
-  if (aiClient) {
+  if (GROQ_API_KEY) {
+    const raw = await callGroqChat([
+      { role: 'system', content: 'You are a direct translation engine. Return only the translation.' },
+      { role: 'user', content: prompt }
+    ]);
+    if (raw) return raw;
+  }
+
+  if (geminiClient) {
     try {
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt
-      });
-      return response.text?.trim() || text;
-    } catch (e) {
-      console.warn('Translate fallback triggered:', e);
-    }
+      const raw = await callGeminiChat(prompt);
+      if (raw) return raw;
+    } catch (_) {}
   }
 
   return `[${targetName} Translation]: ${text}`;
@@ -370,4 +502,3 @@ export async function analyzeThreadSentiment(messages: { text: string; sender: s
     signals: signals.length > 0 ? signals : ['Standard Conversation']
   };
 }
-

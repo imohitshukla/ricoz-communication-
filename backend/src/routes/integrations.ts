@@ -4,6 +4,7 @@ import { testSmtpConnection, getEmailProviderInfo, sendEmail } from '../services
 import { testTwilioConnection, isTwilioConfigured, getTwilioInfo, sendSms, makeOutboundCall } from '../services/twilioService';
 import { testRcsConnection, isRcsConfigured, getRcsInfo, sendRcsTextMessage } from '../services/rcsService';
 import { testElevenLabsConnection, isElevenLabsConfigured } from '../services/elevenLabsService';
+import { getVoiceGatewayInfo } from '../services/voiceGateway';
 import { prisma } from '../db';
 import axios from 'axios';
 
@@ -49,47 +50,86 @@ integrationsRouter.get('/status', async (req, res) => {
 
   const emailInfo = getEmailProviderInfo();
   const twilioInfo = getTwilioInfo();
+  const voiceGateway = getVoiceGatewayInfo();
   const rcsInfo = getRcsInfo();
+
+  // Multi-Provider AI check
+  const groqConfigured = Boolean(process.env.GROQ_API_KEY);
   const geminiConfigured = Boolean(process.env.GEMINI_API_KEY);
+  const ollamaConfigured = process.env.OLLAMA_ENABLED === 'true';
+  const aiConfigured = groqConfigured || geminiConfigured || ollamaConfigured;
+  const activeAiProvider = groqConfigured ? 'Groq (Llama 3.3 70B Free)' : geminiConfigured ? 'Google Gemini Free' : ollamaConfigured ? 'Ollama Local' : 'Local Knowledge Fallback';
 
   res.json({
     channels: [
       {
         id: 'whatsapp',
-        name: 'WhatsApp Cloud API',
+        name: 'WhatsApp Cloud API (Meta Official)',
         configured: whatsappConfigured,
         status: whatsappConfigured ? 'CONNECTED' : 'STANDBY',
-        requires: ['Access Token', 'Phone Number ID', 'WABA ID'],
+        requires: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_WABA_ID'],
         category: 'Messaging',
         mode: whatsappConfigured ? 'live' : 'needs_credentials',
+        tier: '1,000 Free Service Conversations/mo from Meta + Free Test Sandbox Number',
+      },
+      {
+        id: 'ai_engine',
+        name: `AI Auto-Responder & Copilot (${activeAiProvider})`,
+        configured: aiConfigured,
+        status: aiConfigured ? 'CONNECTED' : 'STANDBY',
+        requires: ['GROQ_API_KEY (Free: 14k req/day)', 'GEMINI_API_KEY (Free: 1.5k req/day)', 'or OLLAMA_ENABLED=true ($0 Local)'],
+        category: 'AI Intelligence',
+        mode: aiConfigured ? 'live' : 'standby',
+        tier: activeAiProvider,
+      },
+      {
+        id: 'email',
+        name: `Email Marketing & Alerts (${emailInfo.provider})`,
+        configured: emailInfo.configured,
+        status: emailInfo.configured ? 'CONNECTED' : 'DEV_FALLBACK',
+        requires: ['BREVO_API_KEY (300/day free)', 'MAILJET_API_KEY (200/day free)', 'RESEND_API_KEY', 'or SMTP_PASS'],
+        category: 'Email',
+        mode: emailInfo.configured ? 'live' : 'sandbox',
+        tier: emailInfo.freeQuota,
+      },
+      {
+        id: 'voice_webrtc',
+        name: 'WebRTC In-App / Browser Audio Calling',
+        configured: true,
+        status: 'CONNECTED',
+        requires: ['Google Public STUN (Included Free)'],
+        category: 'Telephony',
+        mode: 'live',
+        tier: '100% Free Peer-to-Peer Audio ($0 Carrier Charges)',
+      },
+      {
+        id: 'voice_sip',
+        name: 'Asterisk / FreeSWITCH Open-Source PBX',
+        configured: Boolean(process.env.FREESWITCH_SIP_HOST || process.env.SIP_HOST),
+        status: Boolean(process.env.FREESWITCH_SIP_HOST || process.env.SIP_HOST) ? 'CONNECTED' : 'STANDBY',
+        requires: ['FREESWITCH_SIP_HOST (optional open PBX server)'],
+        category: 'Telephony',
+        mode: Boolean(process.env.FREESWITCH_SIP_HOST || process.env.SIP_HOST) ? 'live' : 'ready_for_sip',
+        tier: 'Self-Hosted Open Source SIP Engine',
+      },
+      {
+        id: 'voice',
+        name: 'PSTN Cellular & Landline Dialer (Twilio)',
+        configured: twilioInfo.configured,
+        status: twilioInfo.configured ? 'CONNECTED' : 'STANDBY',
+        requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
+        category: 'Telephony',
+        mode: twilioInfo.mode,
+        tier: 'Pay-per-minute Outbound Mobile Carrier',
       },
       {
         id: 'instagram',
         name: 'Instagram Direct & Comments',
         configured: instagramConfigured,
         status: instagramConfigured ? 'CONNECTED' : 'STANDBY',
-        requires: ['Access Token', 'Instagram Account ID'],
+        requires: ['INSTAGRAM_ACCESS_TOKEN', 'INSTAGRAM_ACCOUNT_ID'],
         category: 'Social',
         mode: instagramConfigured ? 'live' : 'needs_credentials',
-      },
-      {
-        id: 'sms',
-        name: 'SMS / MMS (Twilio)',
-        configured: twilioInfo.configured,
-        status: twilioInfo.configured ? 'CONNECTED' : 'STANDBY',
-        requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
-        category: 'Messaging',
-        mode: twilioInfo.mode,
-      },
-      {
-        id: 'voice',
-        name: 'Voice Calls & Cold Calling (Twilio + ElevenLabs)',
-        configured: twilioInfo.configured,
-        status: twilioInfo.configured ? 'CONNECTED' : 'STANDBY',
-        requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ELEVENLABS_API_KEY (optional)'],
-        category: 'Telephony',
-        mode: twilioInfo.mode,
-        aiVoice: isElevenLabsConfigured(),
       },
       {
         id: 'rcs',
@@ -100,37 +140,9 @@ integrationsRouter.get('/status', async (req, res) => {
         category: 'Carrier',
         mode: rcsInfo.mode,
       },
-      {
-        id: 'email',
-        name: `Email (${emailInfo.provider})`,
-        configured: emailInfo.configured,
-        status: emailInfo.configured ? 'CONNECTED' : 'DEV_FALLBACK',
-        requires: emailInfo.provider === 'Resend' ? ['RESEND_API_KEY'] : ['SMTP_PASS'],
-        category: 'Email',
-        mode: emailInfo.mode,
-        provider: emailInfo.provider,
-      },
-      {
-        id: 'elevenlabs',
-        name: 'ElevenLabs Ultra-Realistic AI Voice',
-        configured: isElevenLabsConfigured(),
-        status: isElevenLabsConfigured() ? 'CONNECTED' : 'STANDBY',
-        requires: ['ELEVENLABS_API_KEY'],
-        category: 'AI Audio',
-        mode: isElevenLabsConfigured() ? 'live' : 'disabled',
-      },
-      {
-        id: 'gemini',
-        name: 'Google Gemini 2.5 Pro Copilot',
-        configured: geminiConfigured,
-        status: geminiConfigured ? 'CONNECTED' : 'ACTIVE_DEFAULT',
-        requires: ['GEMINI_API_KEY'],
-        category: 'AI Reasoning',
-        mode: geminiConfigured ? 'live' : 'default',
-      },
     ],
     mode: 'production',
-    notice: 'Connect your channels securely via the Settings page or by setting environment variables.',
+    notice: 'Free-tier modular infrastructure: Brevo (9,000 free emails/mo), Groq (14,400 free AI req/day), WebRTC ($0 audio), and Meta Cloud API (1,000 free chats/mo).',
   });
 });
 
