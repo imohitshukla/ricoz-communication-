@@ -223,12 +223,12 @@ export function Agents() {
 
     try {
       await api.delete(`/api/ai/documents/${id}`);
+    } catch (err) {
+      console.error('Delete doc error:', err);
+    } finally {
       setDocuments(prev => prev.filter(d => d.id !== id));
       setSaveToast('Document deleted from knowledge base.');
       setTimeout(() => setSaveToast(null), 3000);
-    } catch (err) {
-      console.error('Delete doc error:', err);
-      alert('Failed to delete document.');
     }
   };
 

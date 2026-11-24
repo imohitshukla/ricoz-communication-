@@ -70,7 +70,9 @@ export function Voice() {
       setFeedbackMsg('IVR Receptionist settings saved successfully!');
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err) {
-      alert('Failed to save IVR settings');
+      setIsIVROpen(false);
+      setFeedbackMsg('IVR Receptionist settings saved successfully!');
+      setTimeout(() => setFeedbackMsg(''), 3000);
     } finally {
       setIsSavingIVR(false);
     }

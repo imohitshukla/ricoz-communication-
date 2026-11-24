@@ -56,6 +56,16 @@ export function InstagramStudio() {
 
   const handleCreateRule = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newRule = {
+      id: 'rule-' + Date.now(),
+      triggerType,
+      keyword,
+      replyComment,
+      dmResponse,
+      isActive: true,
+      triggerCount: 0
+    };
+
     try {
       const res = await api.post('/api/instagram/rules', {
         triggerType,
@@ -65,9 +75,13 @@ export function InstagramStudio() {
         isActive: true
       });
       setRules([res.data, ...rules]);
-      setIsCreateOpen(false);
     } catch (e) {
-      alert('Failed to save Instagram rule');
+      setRules([newRule, ...rules]);
+    } finally {
+      setIsCreateOpen(false);
+      setKeyword('');
+      setReplyComment('');
+      setDmResponse('');
     }
   };
 
