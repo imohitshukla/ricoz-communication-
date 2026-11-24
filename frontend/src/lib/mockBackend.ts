@@ -106,6 +106,55 @@ const INITIAL_TEMPLATES = [
 export function handleMockRoute(method: string, path: string, payload?: any): MockResponse | null {
   const normalizedPath = path.split('?')[0].replace(/\/$/, '');
 
+  // 0. Authentication
+  if (normalizedPath === '/api/auth/login' && method === 'POST') {
+    const email = payload?.email || 'admin@ricoz.io';
+    const user = {
+      id: 'usr-admin-1',
+      email,
+      name: email.toLowerCase().includes('admin') ? 'Ricoz Administrator' : 'Demo Enterprise User',
+      role: 'Admin',
+      workspaceId: 'ws_ricoz_enterprise'
+    };
+    return {
+      status: 200,
+      data: {
+        token: 'jwt_token_demo_' + Date.now(),
+        user
+      }
+    };
+  }
+
+  if (normalizedPath === '/api/auth/me') {
+    return {
+      status: 200,
+      data: {
+        id: 'usr-admin-1',
+        email: 'admin@ricoz.io',
+        name: 'Ricoz Administrator',
+        role: 'Admin',
+        workspaceId: 'ws_ricoz_enterprise'
+      }
+    };
+  }
+
+  if (normalizedPath === '/api/auth/signup' && method === 'POST') {
+    const user = {
+      id: 'usr-signup-' + Date.now(),
+      email: payload?.email || 'new@ricoz.io',
+      name: payload?.name || 'New Enterprise User',
+      role: 'Admin',
+      workspaceId: 'ws_ricoz_enterprise'
+    };
+    return {
+      status: 200,
+      data: {
+        token: 'jwt_token_demo_' + Date.now(),
+        user
+      }
+    };
+  }
+
   // 1. Analytics & Overview
   if (normalizedPath === '/api/analytics') {
     return {
