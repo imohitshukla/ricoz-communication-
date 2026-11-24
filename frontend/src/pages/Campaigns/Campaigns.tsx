@@ -156,7 +156,6 @@ export function Campaigns() {
       console.warn('Using pre-approved default broadcast templates:', e);
     }
   };
-  };
 
   const fetchCascadeRules = async () => {
     setLoadingCascades(true);
