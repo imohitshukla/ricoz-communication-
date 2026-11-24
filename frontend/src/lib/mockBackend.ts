@@ -426,6 +426,57 @@ export function handleMockRoute(method: string, path: string, payload?: any): Mo
     };
   }
 
+  if (normalizedPath === '/api/email/templates') {
+    return {
+      status: 200,
+      data: [
+        {
+          id: 'tpl-1',
+          name: 'Product Launch Blast',
+          category: 'Marketing',
+          status: 'active',
+          subject: 'Introducing {{product_name}} — Exclusively for {{name}} 🚀',
+          previewText: "You're one of the first to hear this.",
+          htmlBody: '<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f8f9fa;padding:40px;"><div style="max-width:600px;margin:auto;background:#fff;border-radius:16px;padding:32px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"><h1 style="color:#0f172a;">Introducing Next-Gen AI Copilot</h1><p style="color:#475569;font-size:16px;">Supercharge your customer conversations across WhatsApp, Email, RCS, and Voice.</p><a href="https://ricoz.io" style="display:inline-block;padding:12px 24px;background:#00a688;color:#fff;border-radius:8px;font-weight:bold;text-decoration:none;">Get Started Free</a></div></body></html>',
+          createdAt: '2026-11-20'
+        },
+        {
+          id: 'tpl-2',
+          name: 'Newsletter Monthly Digest',
+          category: 'Newsletter',
+          status: 'active',
+          subject: '{{month}} Digest: 10x Your Omnichannel Conversions 📈',
+          previewText: 'Key industry benchmarks and playbooks.',
+          htmlBody: '<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f8f9fa;padding:40px;"><div style="max-width:600px;margin:auto;background:#fff;border-radius:16px;padding:32px;"><h1 style="color:#0f172a;">Monthly Growth Digest</h1><p style="color:#475569;">Read our latest benchmark study on 98% WhatsApp open rates.</p></div></body></html>',
+          createdAt: '2026-11-22'
+        },
+        {
+          id: 'tpl-3',
+          name: 'Promo Discount Offer',
+          category: 'Promotional',
+          status: 'active',
+          subject: 'Special Offer: 30% Off Your Enterprise Plan 🎁',
+          previewText: 'Valid for the next 48 hours only.',
+          htmlBody: '<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f8f9fa;padding:40px;"><div style="max-width:600px;margin:auto;background:#fff;border-radius:16px;padding:32px;"><h1 style="color:#0f172a;">Claim Your 30% VIP Discount</h1><p style="color:#475569;">Upgrade your workspace today with code VIP30.</p></div></body></html>',
+          createdAt: '2026-11-24'
+        }
+      ]
+    };
+  }
+
+  if (normalizedPath === '/api/email/contacts') {
+    return {
+      status: 200,
+      data: [
+        { id: 'ct-1', email: 'alex.rivera@apexcloud.io', name: 'Alex Rivera', status: 'subscribed', source: 'creator_campaign', tags: 'vip,enterprise', createdAt: '2026-11-20' },
+        { id: 'ct-2', email: 'sophia@taylordesign.co', name: 'Sophia Taylor', status: 'subscribed', source: 'inbound', tags: 'growth,design', createdAt: '2026-11-21' },
+        { id: 'ct-3', email: 'm.chen@synthetix.tech', name: 'Michael Chen', status: 'subscribed', source: 'web_form', tags: 'tech,trial', createdAt: '2026-11-22' },
+        { id: 'ct-4', email: 'elena@nordictech.io', name: 'Elena Rostova', status: 'subscribed', source: 'sales_call', tags: 'enterprise', createdAt: '2026-11-23' },
+        { id: 'ct-5', email: 'david@stratusops.net', name: 'David Miller', status: 'subscribed', source: 'csv_import', tags: 'trial', createdAt: '2026-11-24' }
+      ]
+    };
+  }
+
   if (normalizedPath.startsWith('/api/email/campaigns/') && normalizedPath.endsWith('/send-test') && method === 'POST') {
     return {
       status: 200,

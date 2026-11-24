@@ -240,28 +240,35 @@ export function EmailMarketing() {
   const loadStats = async () => {
     try {
       const res = await api.get('/api/email/stats');
-      setStats(res.data);
+      if (res && res.totalSubscribers !== undefined) {
+        setStats(res);
+      } else if (res?.data && res.data.totalSubscribers !== undefined) {
+        setStats(res.data);
+      }
     } catch {}
   };
 
   const loadCampaigns = async () => {
     try {
       const res = await api.get('/api/email/campaigns');
-      setCampaigns(res.data);
+      const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : null);
+      if (list) setCampaigns(list);
     } catch {}
   };
 
   const loadTemplates = async () => {
     try {
       const res = await api.get('/api/email/templates');
-      setTemplates(res.data);
+      const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : null);
+      if (list) setTemplates(list);
     } catch {}
   };
 
   const loadContacts = async () => {
     try {
       const res = await api.get('/api/email/contacts');
-      setContacts(res.data);
+      const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : null);
+      if (list) setContacts(list);
     } catch {}
   };
 
@@ -478,9 +485,10 @@ export function EmailMarketing() {
     } catch {}
   };
 
-  const filteredContacts = contacts.filter(c =>
-    c.email.toLowerCase().includes(contactSearch.toLowerCase()) ||
-    (c.name || '').toLowerCase().includes(contactSearch.toLowerCase())
+  const safeContacts = Array.isArray(contacts) ? contacts : DEFAULT_EMAIL_CONTACTS;
+  const filteredContacts = safeContacts.filter(c =>
+    (c?.email || '').toLowerCase().includes(contactSearch.toLowerCase()) ||
+    (c?.name || '').toLowerCase().includes(contactSearch.toLowerCase())
   );
 
   const openRate = (c: EmailCampaign) => c.delivered > 0 ? ((c.opened / c.delivered) * 100).toFixed(1) : '0.0';
@@ -581,7 +589,7 @@ export function EmailMarketing() {
               {tab === 'overview' && <span className="flex items-center space-x-1.5"><BarChart2 className="w-3.5 h-3.5" /><span>Overview</span></span>}
               {tab === 'campaigns' && <span className="flex items-center space-x-1.5"><Send className="w-3.5 h-3.5" /><span>Campaigns ({campaigns.length})</span></span>}
               {tab === 'templates' && <span className="flex items-center space-x-1.5"><Palette className="w-3.5 h-3.5" /><span>Templates ({templates.length})</span></span>}
-              {tab === 'contacts' && <span className="flex items-center space-x-1.5"><Users className="w-3.5 h-3.5" /><span>Subscribers ({contacts.filter(c => c.status === 'subscribed').length})</span></span>}
+              {tab === 'contacts' && <span className="flex items-center space-x-1.5"><Users className="w-3.5 h-3.5" /><span>Subscribers ({safeContacts.filter(c => c.status === 'subscribed').length})</span></span>}
             </button>
           ))}
         </div>
@@ -941,10 +949,10 @@ export function EmailMarketing() {
                 </div>
                 <div className="flex items-center space-x-2 text-xs text-slate-500 font-semibold">
                   <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-bold">
-                    {contacts.filter(c => c.status === 'subscribed').length} subscribed
+                    {safeContacts.filter(c => c.status === 'subscribed').length} subscribed
                   </span>
                   <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-bold">
-                    {contacts.filter(c => c.status === 'unsubscribed').length} unsubscribed
+                    {safeContacts.filter(c => c.status === 'unsubscribed').length} unsubscribed
                   </span>
                 </div>
               </div>
