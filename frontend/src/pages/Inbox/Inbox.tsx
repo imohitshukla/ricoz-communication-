@@ -119,11 +119,14 @@ export function Inbox() {
         id: c.id,
         contactId: c.contactId,
         name: c.contact?.name || c.contact?.phoneNumber || 'Customer',
-        lastMessage: c.messages?.[0]?.text || 'Started conversation',
-        time: c.messages?.[0]?.timestamp ? new Date(c.messages[0].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now',
+        lastMessage: c.messages?.[c.messages.length - 1]?.text || c.messages?.[0]?.text || 'Started conversation',
+        time: c.messages?.[c.messages.length - 1]?.timestamp ? new Date(c.messages[c.messages.length - 1].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now',
         unread: 0,
         channel: c.channel || 'whatsapp',
-        messages: [],
+        messages: Array.isArray(c.messages) && c.messages.length > 0 ? c.messages.map((m: any) => ({
+          ...m,
+          time: m.time || (m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now')
+        })) : [],
         contact: c.contact || { id: c.contactId, phoneNumber: 'Unknown' }
       }));
 
