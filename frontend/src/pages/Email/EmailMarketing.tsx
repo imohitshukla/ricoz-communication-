@@ -195,7 +195,7 @@ export function EmailMarketing() {
 
   // Test email
   const [testEmailFor, setTestEmailFor] = useState<string | null>(null);
-  const [testEmailAddr, setTestEmailAddr] = useState('');
+  const [testEmailAddr, setTestEmailAddr] = useState('mohitshukla57662@gmail.com');
   const [testResultReport, setTestResultReport] = useState<{
     recipient: string;
     subject: string;
