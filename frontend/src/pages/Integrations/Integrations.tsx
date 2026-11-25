@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   MessageSquare, 
   Mail, 
@@ -52,7 +53,8 @@ const DEFAULT_CHANNELS: ChannelItem[] = [
     icon: '💬',
     color: '#25D366',
     bgLight: 'rgba(37, 211, 102, 0.1)',
-    status: 'not_connected',
+    status: 'connected',
+    accountInfo: 'Phone ID: 1546030978584713 • Sandbox: +1 (555) 140-9711',
     category: 'Messaging',
     freeTier: '✓ 1,000 Free Conversations / Month + Free Test Phone Sandbox from Meta',
     isFreeAlternative: true,
@@ -383,6 +385,42 @@ export function Integrations() {
     setTestSendResult(null);
 
     try {
+      // Direct Meta WhatsApp Cloud API Gateway
+      if (testTargetChannel === 'whatsapp') {
+        const cleanRecipient = testRecipient.replace(/[^0-9]/g, '');
+        const waToken = localStorage.getItem('ricoz_whatsapp_token') || 'EAAa3a0YYc5MBTDpjkTyoyaHOkNS2x3JGhvJ3ZCBzvZCsDsFfHUZAK8jlsKmJWkUrihasgB8X6zIRP1ZCGhkGIJ41Qw8xL3PZCHhiIwf7zZBxIe4I6nZAlw3ZAVJpoCB40eqBScKzJHSwUZBZBqay1YrCiMIYor0U72BebbVOzwxDwJDRgJO1yD61HrthESjQjZAHtfXAh9DZCpjw6lkazaxJt6PY66FX9oLI0UgvRASTZCAsooYakHNNapLPSWLJkDZAYeCzjU2ZCmq05dSDjGmMHr3fha4';
+        const waPhoneId = localStorage.getItem('ricoz_whatsapp_phone_id') || '1546030978584713';
+
+        try {
+          const fbRes = await axios.post(`https://graph.facebook.com/v21.0/${waPhoneId}/messages`, {
+            messaging_product: 'whatsapp',
+            to: cleanRecipient,
+            type: 'template',
+            template: {
+              name: 'hello_world',
+              language: { code: 'en_US' }
+            }
+          }, {
+            headers: {
+              'Authorization': `Bearer ${waToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (fbRes.data?.messages?.[0]?.id) {
+            setTestSendResult({
+              success: true,
+              text: `Meta Official WhatsApp Dispatch Confirmed! Message ID: ${fbRes.data.messages[0].id}. Check WhatsApp on ${testRecipient}.`
+            });
+            setSendingTest(false);
+            return;
+          }
+        } catch (fbErr: any) {
+          const errMsg = fbErr.response?.data?.error?.message || fbErr.message;
+          console.warn('Direct Meta fallback to backend:', errMsg);
+        }
+      }
+
       const res = await api.post('/api/integrations/send-test', {
         channel: testTargetChannel,
         to: testRecipient,

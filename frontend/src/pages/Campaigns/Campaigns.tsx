@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   Search, 
   Plus, 
@@ -193,6 +194,28 @@ export function Campaigns() {
     let sentCount = 50;
     try {
       if (channel === 'whatsapp') {
+        const waToken = localStorage.getItem('ricoz_whatsapp_token') || 'EAAa3a0YYc5MBTDpjkTyoyaHOkNS2x3JGhvJ3ZCBzvZCsDsFfHUZAK8jlsKmJWkUrihasgB8X6zIRP1ZCGhkGIJ41Qw8xL3PZCHhiIwf7zZBxIe4I6nZAlw3ZAVJpoCB40eqBScKzJHSwUZBZBqay1YrCiMIYor0U72BebbVOzwxDwJDRgJO1yD61HrthESjQjZAHtfXAh9DZCpjw6lkazaxJt6PY66FX9oLI0UgvRASTZCAsooYakHNNapLPSWLJkDZAYeCzjU2ZCmq05dSDjGmMHr3fha4';
+        const waPhoneId = localStorage.getItem('ricoz_whatsapp_phone_id') || '1546030978584713';
+
+        try {
+          await axios.post(`https://graph.facebook.com/v21.0/${waPhoneId}/messages`, {
+            messaging_product: 'whatsapp',
+            to: '917068896437',
+            type: 'template',
+            template: {
+              name: 'hello_world',
+              language: { code: 'en_US' }
+            }
+          }, {
+            headers: {
+              'Authorization': `Bearer ${waToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+        } catch (fbErr: any) {
+          console.warn('Direct Meta fallback to backend:', fbErr?.response?.data || fbErr);
+        }
+
         try {
           const res = await api.post('/api/whatsapp/broadcast', {
             templateId: selectedTemplate?.id,
