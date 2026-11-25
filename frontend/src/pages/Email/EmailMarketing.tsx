@@ -208,7 +208,7 @@ export function EmailMarketing() {
       provider: 'brevo',
       apiKey: '',
       fromName: 'Ricoz Omnichannel',
-      fromEmail: 'mohitshukla57662@gmail.com',
+      fromEmail: 'kumartharun0805@gmail.com',
     };
   });
 
