@@ -51,13 +51,16 @@ export function APIHub() {
     } catch (e) {
       // Fallback display
       setChannels([
-        { id: 'whatsapp', name: 'WhatsApp Cloud API', configured: false, status: 'STANDBY_SIMULATION', requires: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID'], category: 'Messaging' },
-        { id: 'instagram', name: 'Instagram Direct & Comments', configured: false, status: 'STANDBY_SIMULATION', requires: ['INSTAGRAM_ACCESS_TOKEN'], category: 'Social' },
+        { id: 'whatsapp', name: 'WhatsApp Cloud API (Meta Official)', configured: false, status: '1,000 Free Convs/mo', requires: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_WABA_ID'], category: 'Messaging' },
+        { id: 'voice_webrtc', name: 'WebRTC In-App Browser Audio', configured: true, status: '100% Free ($0/min)', requires: ['Google Free STUN (Included)'], category: 'Voice & PBX' },
+        { id: 'voice_freeswitch', name: 'FreeSWITCH / Asterisk PBX', configured: false, status: 'Open-Source ($0 License)', requires: ['FREESWITCH_SIP_HOST'], category: 'Voice & PBX' },
+        { id: 'ai_groq', name: 'Groq Llama 3.3 70B AI Engine', configured: false, status: '14,400 Free Req/Day', requires: ['GROQ_API_KEY'], category: 'AI Intelligence' },
+        { id: 'gemini', name: 'Google Gemini 2.0 / 1.5 Flash', configured: true, status: '1,500 Free Req/Day', requires: ['GEMINI_API_KEY'], category: 'AI Intelligence' },
+        { id: 'ai_ollama', name: 'Ollama Local AI ($0 Private)', configured: false, status: 'Unlimited $0 Offline', requires: ['OLLAMA_ENABLED=true'], category: 'AI Intelligence' },
+        { id: 'email_brevo', name: 'Brevo (Sendinblue) Outbound', configured: true, status: '300 Free Emails/Day', requires: ['BREVO_API_KEY'], category: 'Email' },
+        { id: 'email_mailjet', name: 'Mailjet Email Relay', configured: false, status: '200 Free Emails/Day', requires: ['MAILJET_API_KEY', 'MAILJET_SECRET_KEY'], category: 'Email' },
+        { id: 'voice_twilio', name: 'Twilio Cellular PSTN Dialing', configured: false, status: 'Paid Carrier (~$0.014/m)', requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'], category: 'Voice & PBX' },
         { id: 'rcs', name: 'Google RCS Business Messaging', configured: false, status: 'STANDBY_SIMULATION', requires: ['RCS_API_KEY', 'RCS_AGENT_ID'], category: 'Carrier' },
-        { id: 'voice', name: 'Twilio Voice & Cold Calling', configured: false, status: 'STANDBY_SIMULATION', requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'], category: 'Telephony' },
-        { id: 'elevenlabs', name: 'ElevenLabs Ultra-Realistic AI Voice', configured: false, status: 'STANDBY_SIMULATION', requires: ['ELEVENLABS_API_KEY'], category: 'AI Audio' },
-        { id: 'email', name: 'Mailtrap / SMTP Gateway', configured: true, status: 'CONNECTED', requires: ['SMTP_PASS'], category: 'Email' },
-        { id: 'gemini', name: 'Google Gemini 2.5 Pro Copilot', configured: true, status: 'CONNECTED', requires: ['GEMINI_API_KEY'], category: 'AI Reasoning' },
       ]);
     }
   };
@@ -104,43 +107,43 @@ export function APIHub() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const envSample = `# ── Ricoz Omnichannel Production Environment Variables ──
-# Database & Base
-DATABASE_URL="postgresql://...your_railway_postgres_url"
+  const envSample = `# ── Ricoz Omnichannel Production Environment Variables (100% Free Tiers Supported) ──
+DATABASE_URL="postgresql://...your_postgres_url"
 JWT_SECRET="super_secret_jwt_key_change_in_production"
 FRONTEND_URL="https://ricoz-communication-74lg.vercel.app"
 
-# 1. WhatsApp Cloud API (Meta Developers)
+# 1. WhatsApp Cloud API (Meta Official: 1,000 Free Service Conversations/mo + Free Test Number)
+# https://developers.facebook.com → WhatsApp → API Setup
 WHATSAPP_ACCESS_TOKEN="EAA..."
 WHATSAPP_PHONE_NUMBER_ID="10..."
+WHATSAPP_WABA_ID="339..."
 WHATSAPP_VERIFY_TOKEN="ricoz_webhook_token"
 
-# 2. Instagram Graph API (Meta Developers)
-INSTAGRAM_ACCESS_TOKEN="EAA..."
-INSTAGRAM_ACCOUNT_ID="178..."
-INSTAGRAM_VERIFY_TOKEN="ricoz_instagram_token"
+# 2. AI Intelligence Engine (100% Free Tiers)
+# Groq: 14,400 req/day free, 800 tok/sec (https://console.groq.com/keys)
+GROQ_API_KEY="gsk_..."
+GROQ_MODEL="llama-3.3-70b-versatile"
+# Google Gemini: 1,500 req/day free (https://aistudio.google.com)
+GEMINI_API_KEY="AIza..."
+# Ollama: 100% local, $0 cost, unlimited (http://localhost:11434)
+OLLAMA_ENABLED=false
 
-# 3. Google RCS Business Messaging (RBM Partner Gateway)
-RCS_API_KEY="AIza..."
-RCS_AGENT_ID="ricoz-verified-agent"
+# 3. Email Outbound Engine (100% Free Tiers)
+# Brevo: 300 free emails/day = 9,000/month (https://app.brevo.com/settings/keys/api)
+BREVO_API_KEY="xkeysib-..."
+# Mailjet: 200 free emails/day = 6,000/month (https://app.mailjet.com/account/api_keys)
+# MAILJET_API_KEY="..."
+# MAILJET_SECRET_KEY="..."
+SMTP_FROM="Ricoz Communication <your_verified_email@gmail.com>"
 
-# 4. Twilio Telephony & Cold Calling
-TWILIO_ACCOUNT_SID="AC..."
-TWILIO_AUTH_TOKEN="your_twilio_auth_token"
-TWILIO_PHONE_NUMBER="+18005550199"
-
-# 5. ElevenLabs AI Voice Closer
-ELEVENLABS_API_KEY="sk_..."
-ELEVENLABS_VOICE_ID="21m00Tcm4TlvDq8ikWAM" # Rachel
-
-# 6. Email Delivery (Mailtrap)
-SMTP_PASS="eccf281ced857cbb8270da0a2ba003e2"
-SMTP_USER="api"
-SMTP_HOST="live.smtp.mailtrap.io"
-SMTP_FROM="Ricoz Communication <hello@demomailtrap.com>"
-
-# 7. AI Copilot (Google Gemini)
-GEMINI_API_KEY="AIza..."`;
+# 4. Voice Telephony & Open-Source PBX
+# Mode: 'webrtc' (100% Free Browser Audio) | 'freeswitch' (Open-Source PBX) | 'twilio' (Cellular Carrier)
+VOICE_PROVIDER="webrtc"
+# FREESWITCH_SIP_HOST="your_vps_ip"
+# FREESWITCH_SIP_PORT="5060"
+# TWILIO_ACCOUNT_SID="AC..."
+# TWILIO_AUTH_TOKEN="..."
+# TWILIO_PHONE_NUMBER="+1..."`;
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#f8f9fc] h-full p-8">

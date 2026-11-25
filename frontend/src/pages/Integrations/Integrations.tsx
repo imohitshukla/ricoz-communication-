@@ -33,8 +33,10 @@ interface ChannelItem {
   color: string;
   bgLight: string;
   status: 'connected' | 'not_connected' | 'simulated';
-  category: 'Messaging' | 'Telephony' | 'Social' | 'Email' | 'Carrier' | 'AI';
+  category: string;
   description: string;
+  freeTier: string;
+  isFreeAlternative: boolean;
   liveFeatures: string[];
   requires: string[];
   docsUrl: string;
@@ -45,23 +47,193 @@ interface ChannelItem {
 const DEFAULT_CHANNELS: ChannelItem[] = [
   {
     id: 'whatsapp',
-    name: 'WhatsApp Business API',
-    provider: 'Meta Cloud API v20.0',
+    name: 'WhatsApp Cloud API (Meta Official)',
+    provider: 'Meta Cloud API (1,000 Free Convs/mo)',
     icon: '💬',
     color: '#25D366',
     bgLight: 'rgba(37, 211, 102, 0.1)',
     status: 'not_connected',
     category: 'Messaging',
-    description: 'Direct Meta Cloud API integration for 2-way live chat, interactive list messages, and media broadcasts.',
-    liveFeatures: ['Two-way live chat', 'Interactive CTA buttons', 'Catalog & product list', 'Verified green badge support'],
+    freeTier: '✓ 1,000 Free Conversations / Month + Free Test Phone Sandbox from Meta',
+    isFreeAlternative: true,
+    description: 'Direct Meta Cloud API integration. Meta provides 1,000 free service conversations every month and a free sandbox test phone number for development.',
+    liveFeatures: ['1,000 free service convs/mo', 'Free Meta test phone sandbox', 'Two-way live chat & auto-replies', 'Official verified badge support'],
     requires: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_WABA_ID'],
     docsUrl: 'https://developers.facebook.com/docs/whatsapp/cloud-api',
     setupSteps: [
       'Create a Meta Business app at developers.facebook.com with WhatsApp product',
-      'Generate a Permanent System User Access Token',
+      'Under WhatsApp → API Setup, use the Free Test Phone Number',
+      'Generate a permanent System User Token with whatsapp_business_messaging permission',
       'Copy your Phone Number ID and WhatsApp Business Account ID (WABA)',
-      'Add credentials to backend .env or save them below',
-      'Configure the Webhook URL with Verify Token: ricoz_webhook_token'
+      'Set the Webhook URL with Verify Token: ricoz_webhook_token'
+    ]
+  },
+  {
+    id: 'voice_webrtc',
+    name: 'WebRTC In-App Browser Calling',
+    provider: 'Google Public STUN (100% Free $0/min)',
+    icon: '🎙️',
+    color: '#00a688',
+    bgLight: 'rgba(0, 166, 136, 0.1)',
+    status: 'connected',
+    category: 'Voice & PBX',
+    freeTier: '✓ 100% Free Forever ($0 Carrier Charges, Google Public STUN)',
+    isFreeAlternative: true,
+    description: 'Peer-to-peer browser-to-browser encrypted voice calling for customer support, website audio widgets, and internal agent talk. Zero carrier fees ($0.00/min).',
+    liveFeatures: ['Zero carrier cost ($0.00/min)', 'Peer-to-peer WebRTC audio stream', 'End-to-end encrypted DTLS-SRTP', 'Google Free Public STUN network'],
+    requires: ['Browser Mic Permission (Zero API Keys needed)'],
+    docsUrl: 'https://webrtc.org',
+    setupSteps: [
+      'Active out-of-the-box in Ricoz Voice Suite',
+      'Uses Google Free STUN servers (stun.l.google.com:19302) for instant NAT traversal',
+      'Embed the WebRTC customer widget on your landing page for 100% free voice support'
+    ]
+  },
+  {
+    id: 'voice_freeswitch',
+    name: 'Asterisk / FreeSWITCH Open-Source PBX',
+    provider: 'Self-Hosted SIP Gateway',
+    icon: '📞',
+    color: '#0284C7',
+    bgLight: 'rgba(2, 132, 199, 0.1)',
+    status: 'not_connected',
+    category: 'Voice & PBX',
+    freeTier: '✓ Open-Source Software ($0 License Cost) + Custom SIP Trunk',
+    isFreeAlternative: true,
+    description: 'Self-hosted open-source PBX phone switch. Eliminates expensive per-minute platform markups by connecting your own server directly to low-cost wholesale SIP trunks.',
+    liveFeatures: ['Open-source PBX core ($0 license)', 'SIP.js browser telephony integration', 'Custom IVR automated dialplans', 'Wholesale SIP trunking (~$0.005/min)'],
+    requires: ['FREESWITCH_SIP_HOST', 'FREESWITCH_SIP_PORT'],
+    docsUrl: 'https://freeswitch.org',
+    setupSteps: [
+      'Install FreeSWITCH or Asterisk on any local machine or a $4/mo VPS',
+      'Set FREESWITCH_SIP_HOST to your server IP in backend .env',
+      'Connect a low-cost wholesale SIP provider (Telnyx / VoIP.ms at ~$0.005/min)'
+    ]
+  },
+  {
+    id: 'ai_groq',
+    name: 'Groq Llama 3.3 70B AI Engine',
+    provider: 'Groq Cloud LPUs (14,400 Free Req/Day)',
+    icon: '⚡',
+    color: '#F97316',
+    bgLight: 'rgba(249, 115, 22, 0.1)',
+    status: 'not_connected',
+    category: 'AI Intelligence',
+    freeTier: '✓ 14,400 Free Requests / Day (800 tok/sec)',
+    isFreeAlternative: true,
+    description: 'Ultra-fast LPU cloud inference running state-of-the-art Llama 3.3 70B. Provides sub-second conversational auto-replies at 800 tokens/sec completely free of charge.',
+    liveFeatures: ['Llama 3.3 70B Versatile model', 'Blazing 800 tokens/second speed', 'OpenAI-compatible REST format', 'Sub-second auto-responder latency'],
+    requires: ['GROQ_API_KEY'],
+    docsUrl: 'https://console.groq.com/keys',
+    setupSteps: [
+      'Create a free account at console.groq.com',
+      'Generate a free API key (starts with gsk_...)',
+      'Add GROQ_API_KEY to your environment or API Hub for 14,400 free requests/day'
+    ]
+  },
+  {
+    id: 'ai_gemini',
+    name: 'Google Gemini 2.0 / 1.5 Flash',
+    provider: 'Google AI Studio Free Tier',
+    icon: '🤖',
+    color: '#8B5CF6',
+    bgLight: 'rgba(139, 92, 246, 0.1)',
+    status: 'connected',
+    category: 'AI Intelligence',
+    freeTier: '✓ 1,500 Free Requests / Day (1M Token Context)',
+    isFreeAlternative: true,
+    description: 'Google’s flagship multimodal AI engine. Includes a generous free tier of 1,500 requests per day with a massive 1-million token context window for customer lead qualification.',
+    liveFeatures: ['1,500 free requests/day', '1-million token context window', 'Zero-shot lead qualification scoring', 'Multilingual 100+ language support'],
+    requires: ['GEMINI_API_KEY'],
+    docsUrl: 'https://aistudio.google.dev',
+    setupSteps: [
+      'Go to aistudio.google.com and click "Get API Key"',
+      'Create a free API key with your Google account',
+      'Add GEMINI_API_KEY to your environment or API Hub'
+    ]
+  },
+  {
+    id: 'ai_ollama',
+    name: 'Ollama Local AI (Self-Hosted)',
+    provider: 'Local Hardware ($0 Forever, Private)',
+    icon: '🦙',
+    color: '#475569',
+    bgLight: 'rgba(71, 85, 105, 0.1)',
+    status: 'not_connected',
+    category: 'AI Intelligence',
+    freeTier: '✓ 100% Free & Unlimited Forever ($0 Cost, 100% Private)',
+    isFreeAlternative: true,
+    description: 'Run open-weight AI models (Llama 3.2, Mistral, Qwen) 100% locally on your computer or private server. Completely offline, zero cloud API fees, and total GDPR privacy.',
+    liveFeatures: ['Zero external API calls', '100% offline & private data', 'Unlimited inference queries ($0.00)', 'Runs on Mac (M-series) or Linux'],
+    requires: ['OLLAMA_ENABLED=true', 'OLLAMA_BASE_URL (http://localhost:11434)'],
+    docsUrl: 'https://ollama.ai',
+    setupSteps: [
+      'Install Ollama via terminal: brew install ollama (or download from ollama.ai)',
+      'Run a model: ollama run llama3:latest',
+      'Set OLLAMA_ENABLED=true in backend .env'
+    ]
+  },
+  {
+    id: 'email_brevo',
+    name: 'Brevo (Sendinblue) Outbound Engine',
+    provider: 'Brevo SMTP & HTTP API (300 Free/Day)',
+    icon: '✉️',
+    color: '#00A688',
+    bgLight: 'rgba(0, 166, 136, 0.1)',
+    status: 'not_connected',
+    category: 'Email',
+    freeTier: '✓ 300 Free Emails / Day (9,000 Emails / Month Free)',
+    isFreeAlternative: true,
+    description: 'High-deliverability transactional & marketing email engine. Includes 300 free emails every day (9,000 emails/month) with DKIM/SPF primary inbox delivery and direct CORS browser API.',
+    liveFeatures: ['300 free emails/day (9,000/mo)', 'Direct browser CORS API support', 'DKIM & SPF verified sending', 'Rich HTML marketing templates'],
+    requires: ['BREVO_API_KEY (xkeysib-...)'],
+    docsUrl: 'https://app.brevo.com/settings/keys/api',
+    setupSteps: [
+      'Create a free account at brevo.com (no credit card required)',
+      'Go to Profile → SMTP & API → Generate a new API Key',
+      'Paste your xkeysib-... key into Ricoz Email Studio or backend .env'
+    ]
+  },
+  {
+    id: 'email_mailjet',
+    name: 'Mailjet Email Relay',
+    provider: 'Mailjet Free Tier (200 Free/Day)',
+    icon: '📨',
+    color: '#6366F1',
+    bgLight: 'rgba(99, 102, 241, 0.1)',
+    status: 'not_connected',
+    category: 'Email',
+    freeTier: '✓ 200 Free Emails / Day (6,000 Emails / Month Free)',
+    isFreeAlternative: true,
+    description: 'European GDPR-compliant email delivery infrastructure. Includes 200 free emails per day (6,000 emails/month) with full REST API and SMTP relay credentials.',
+    liveFeatures: ['200 free emails/day (6,000/mo)', 'European GDPR-compliant servers', 'Custom SMTP & REST API', 'Campaign open & bounce tracking'],
+    requires: ['MAILJET_API_KEY', 'MAILJET_SECRET_KEY'],
+    docsUrl: 'https://app.mailjet.com/account/api_keys',
+    setupSteps: [
+      'Sign up at mailjet.com and verify your sender email',
+      'Retrieve your API Key and Secret Key from Account Settings',
+      'Add MAILJET_API_KEY and MAILJET_SECRET_KEY to backend .env'
+    ]
+  },
+  {
+    id: 'voice_twilio',
+    name: 'Twilio Outbound PSTN Dialing',
+    provider: 'Twilio PSTN Carrier (Cellular/Landline)',
+    icon: '📞',
+    color: '#F22F46',
+    bgLight: 'rgba(242, 47, 70, 0.1)',
+    status: 'not_connected',
+    category: 'Voice & PBX',
+    freeTier: '⚡ Commercial Telecom Carrier Gateway (~$0.014/min)',
+    isFreeAlternative: false,
+    description: 'Commercial cellular and landline phone network connection for outbound AI cold calling to any mobile number. Requires active Twilio credits.',
+    liveFeatures: ['Real PSTN cellular call placement', 'Global SMS messaging dispatch', 'Automated call recording & transcription', 'Pre-recorded audio drops'],
+    requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
+    docsUrl: 'https://www.twilio.com/docs/voice',
+    setupSteps: [
+      'Sign up at twilio.com and add account balance ($5-$10)',
+      'Obtain an active phone number with voice/SMS capability',
+      'Add TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN to .env'
     ]
   },
   {
@@ -72,133 +244,18 @@ const DEFAULT_CHANNELS: ChannelItem[] = [
     color: '#E1306C',
     bgLight: 'rgba(225, 48, 108, 0.1)',
     status: 'not_connected',
-    category: 'Social',
-    description: 'Auto-reply to Instagram Direct Messages, story mentions, and comment-to-DM lead generation flows.',
-    liveFeatures: ['Direct message sync', 'Story mention triggers', 'Comment-to-DM auto-reply', 'Quick reply ICE breakers'],
+    category: 'Messaging',
+    freeTier: '✓ Free with Meta Professional Account',
+    isFreeAlternative: true,
+    description: 'Auto-reply to Instagram Direct Messages, story mentions, and comment-to-DM lead generation flows via Meta’s official Graph API.',
+    liveFeatures: ['Direct message sync', 'Story mention triggers', 'Comment-to-DM auto-reply', 'Quick reply ice breakers'],
     requires: ['INSTAGRAM_ACCESS_TOKEN', 'INSTAGRAM_ACCOUNT_ID'],
     docsUrl: 'https://developers.facebook.com/docs/messenger-platform/instagram',
     setupSteps: [
       'Connect your Instagram Professional Account to a Facebook Page',
-      'In Meta Developer App, add the Instagram Graph API and Messenger products',
+      'In Meta Developer App, add the Instagram Graph API product',
       'Generate Page Access Token with instagram_manage_messages permission',
-      'Set the Webhook subscription to instagram_messaging',
-      'Save your Access Token and Instagram Account ID'
-    ]
-  },
-  {
-    id: 'voice',
-    name: 'Voice Calling & AI Receptionist',
-    provider: 'Twilio Programmable Voice',
-    icon: '📞',
-    color: '#F22F46',
-    bgLight: 'rgba(242, 47, 70, 0.1)',
-    status: 'not_connected',
-    category: 'Telephony',
-    description: 'Production Twilio Voice engine for live cold calling, inbound IVR trees, automated call recording, and transcriptions.',
-    liveFeatures: ['Real PSTN phone calls', 'Inbound IVR phone trees', 'Call recording & transcription', 'ElevenLabs neural speech playback'],
-    requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
-    docsUrl: 'https://www.twilio.com/docs/voice',
-    setupSteps: [
-      'Sign up at twilio.com and purchase an active phone number with Voice capability',
-      'Retrieve your Account SID and Auth Token from the Twilio Console',
-      'Configure the Voice webhook of your Twilio number to point to Ricoz',
       'Add credentials to backend .env'
-    ]
-  },
-  {
-    id: 'sms',
-    name: 'SMS & MMS Messaging',
-    provider: 'Twilio Global SMS',
-    icon: '📱',
-    color: '#0284C7',
-    bgLight: 'rgba(2, 132, 199, 0.1)',
-    status: 'not_connected',
-    category: 'Messaging',
-    description: 'Worldwide carrier SMS & MMS dispatch with real-time delivery receipts (DLR) and 2-way conversational inbox.',
-    liveFeatures: ['Global 160-char SMS & MMS', 'Real-time delivery receipts', 'Inbound SMS auto-reply', 'Opt-out (STOP/UNSUB) compliance'],
-    requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
-    docsUrl: 'https://www.twilio.com/docs/sms',
-    setupSteps: [
-      'Uses your existing Twilio Phone Number configuration',
-      'In Twilio Console, set the SMS webhook to point to /api/sms/webhook',
-      'Both inbound and outbound text messages will route directly through Ricoz Inbox'
-    ]
-  },
-  {
-    id: 'email',
-    name: 'Email Marketing & Transactional',
-    provider: 'Resend API / SMTP',
-    icon: '✉️',
-    color: '#6366F1',
-    bgLight: 'rgba(99, 102, 241, 0.1)',
-    status: 'not_connected',
-    category: 'Email',
-    description: 'High-deliverability email dispatch using Resend HTTP API with Mailtrap & SMTP fallback for custom domains.',
-    liveFeatures: ['DKIM & SPF verified sending', 'Rich HTML marketing templates', 'Open & click tracking', 'Automated team invite emails'],
-    requires: ['RESEND_API_KEY', 'EMAIL_FROM_ADDRESS'],
-    docsUrl: 'https://resend.com/docs',
-    setupSteps: [
-      'Create an account at resend.com and add your sending domain',
-      'Verify your domain DNS records (DKIM, SPF, MX)',
-      'Generate an API key with Sending permissions',
-      'Add RESEND_API_KEY and EMAIL_FROM_ADDRESS to your environment'
-    ]
-  },
-  {
-    id: 'rcs',
-    name: 'Google RCS Business Messaging',
-    provider: 'Google RBM REST API',
-    icon: '💬',
-    color: '#34A853',
-    bgLight: 'rgba(52, 168, 83, 0.1)',
-    status: 'not_connected',
-    category: 'Carrier',
-    description: 'Next-generation Android verified carrier messaging with interactive rich cards, image carousels, and suggested reply chips.',
-    liveFeatures: ['Verified brand logo & badge', 'Rich media carousels', 'Action chips (Open URL, Call, Location)', 'Read receipts & typing indicators'],
-    requires: ['RCS_API_KEY', 'RCS_AGENT_ID'],
-    docsUrl: 'https://developers.google.com/business-communications/rcs-business-messaging',
-    setupSteps: [
-      'Register for a Google Cloud RBM Partner account',
-      'Create a verified RCS Agent and obtain your Agent ID',
-      'Enable the RCS Business Messaging API in Google Cloud Console',
-      'Provide your Service Account Key or RBM API token'
-    ]
-  },
-  {
-    id: 'elevenlabs',
-    name: 'ElevenLabs Neural AI Voice',
-    provider: 'ElevenLabs Speech Synthesis',
-    icon: '🎙️',
-    color: '#F59E0B',
-    bgLight: 'rgba(245, 158, 11, 0.1)',
-    status: 'not_connected',
-    category: 'AI',
-    description: 'Ultra-realistic human-like voice synthesis powering Cold Calling agents, custom voice cloning, and live phone greetings.',
-    liveFeatures: ['Ultra-low latency speech', 'Voice cloning support', 'Pre-tuned B2B SDR personas (Rachel, Josh)', 'Emotional inflection matching'],
-    requires: ['ELEVENLABS_API_KEY'],
-    docsUrl: 'https://elevenlabs.io/docs',
-    setupSteps: [
-      'Sign up at elevenlabs.io and navigate to Profile → API Keys',
-      'Copy your API key and paste it below or in backend .env',
-      'Instantly upgrades your Cold Calling dialer to speak with human-like neural voice'
-    ]
-  },
-  {
-    id: 'gemini',
-    name: 'Google Gemini 2.5 Pro Copilot',
-    provider: 'Google AI Multimodal SDK',
-    icon: '🤖',
-    color: '#8B5CF6',
-    bgLight: 'rgba(139, 92, 246, 0.1)',
-    status: 'connected',
-    category: 'AI',
-    description: 'Omnichannel intelligence engine powering real-time intent classification, smart response drafting, translation, and sentiment analysis.',
-    liveFeatures: ['Zero-shot sentiment scoring', 'One-click AI reply drafting', 'Multilingual 100+ language translation', 'Real-time lead qualification scoring'],
-    requires: ['GEMINI_API_KEY'],
-    docsUrl: 'https://ai.google.dev',
-    setupSteps: [
-      'Active by default — powered by Google Gemini 2.5 Pro',
-      'Add a custom GEMINI_API_KEY in .env for dedicated enterprise throughput'
     ]
   }
 ];
@@ -391,10 +448,12 @@ export function Integrations() {
     }
   };
 
-  const categories = ['All', 'Messaging', 'Telephony', 'Social', 'Email', 'Carrier', 'AI'];
+  const categories = ['All', '100% Free Tiers', 'Messaging', 'Voice & PBX', 'AI Intelligence', 'Email'];
   const filteredChannels = activeCategory === 'All' 
     ? channels 
-    : channels.filter(c => c.category === activeCategory);
+    : activeCategory === '100% Free Tiers'
+      ? channels.filter(c => c.isFreeAlternative)
+      : channels.filter(c => c.category === activeCategory);
 
   const connectedCount = channels.filter(c => c.status === 'connected').length;
 
@@ -526,6 +585,14 @@ export function Integrations() {
                       )}
                     </div>
                   </div>
+
+                  {/* Free Tier Highlight Badge */}
+                  {ch.freeTier && (
+                    <div className="mb-3 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center space-x-1.5 shadow-2xs">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>{ch.freeTier}</span>
+                    </div>
+                  )}
 
                   {/* Description */}
                   <p className="text-sm text-gray-600 mb-4 leading-relaxed">{ch.description}</p>
