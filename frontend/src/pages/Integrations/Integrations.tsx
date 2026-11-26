@@ -390,7 +390,7 @@ export function Integrations() {
       // Direct Meta WhatsApp Cloud API Gateway
       if (testTargetChannel === 'whatsapp') {
         const cleanRecipient = testRecipient.replace(/[^0-9]/g, '');
-        const waToken = localStorage.getItem('ricoz_whatsapp_token') || 'EAAa3a0YYc5MBTDpjkTyoyaHOkNS2x3JGhvJ3ZCBzvZCsDsFfHUZAK8jlsKmJWkUrihasgB8X6zIRP1ZCGhkGIJ41Qw8xL3PZCHhiIwf7zZBxIe4I6nZAlw3ZAVJpoCB40eqBScKzJHSwUZBZBqay1YrCiMIYor0U72BebbVOzwxDwJDRgJO1yD61HrthESjQjZAHtfXAh9DZCpjw6lkazaxJt6PY66FX9oLI0UgvRASTZCAsooYakHNNapLPSWLJkDZAYeCzjU2ZCmq05dSDjGmMHr3fha4';
+        const waToken = localStorage.getItem('ricoz_whatsapp_token') || 'EAAa3a0YYc5MBTBLAxMZCc8NTywjwlycA3ih74XZB457beYRKSe3jOejW58tryk9x4GCRJLaWsROcQ3DQmjwXjdsncZAyGWLyZByltTcZA0edAlP0uZAmnvRs9y9HgST3NaARqycdphcX7XMzepOAi0CzS9nJcrN64G1ShaCzaa7k375Lkv9DLWnQJPC4Tfr1zYePAvKSXUzZAbTwRa60pVUp3SVl8QHYZCPOJcV7zyDfYzaIw9r8rGmedycC9QfHSVh1EV1btAeLRwS9fIQfJ6Us';
         const waPhoneId = localStorage.getItem('ricoz_whatsapp_phone_id') || '1546030978584713';
 
         try {
