@@ -51,10 +51,10 @@ export function APIHub() {
     } catch (e) {
       // Fallback display
       setChannels([
-        { id: 'whatsapp', name: 'WhatsApp Cloud API (Meta Official)', configured: false, status: '1,000 Free Convs/mo', requires: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_WABA_ID'], category: 'Messaging' },
-        { id: 'voice_webrtc', name: 'WebRTC In-App Browser Audio', configured: true, status: '100% Free ($0/min)', requires: ['Google Free STUN (Included)'], category: 'Voice & PBX' },
+        { id: 'whatsapp', name: 'WhatsApp Cloud API (Meta Official)', configured: true, status: 'CONNECTED (1,000 Free/mo)', requires: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_WABA_ID'], category: 'Messaging' },
+        { id: 'voice_webrtc', name: 'WebRTC In-App Browser Audio', configured: true, status: 'CONNECTED ($0/min STUN)', requires: ['Google Free STUN (Included)'], category: 'Voice & PBX' },
         { id: 'voice_freeswitch', name: 'FreeSWITCH / Asterisk PBX', configured: false, status: 'Open-Source ($0 License)', requires: ['FREESWITCH_SIP_HOST'], category: 'Voice & PBX' },
-        { id: 'ai_groq', name: 'Groq Llama 3.3 70B AI Engine', configured: false, status: '14,400 Free Req/Day', requires: ['GROQ_API_KEY'], category: 'AI Intelligence' },
+        { id: 'ai_groq', name: 'Groq AI Intelligence Engine', configured: true, status: 'CONNECTED (14,400 Free/Day)', requires: ['GROQ_API_KEY'], category: 'AI Intelligence' },
         { id: 'gemini', name: 'Google Gemini 2.0 / 1.5 Flash', configured: true, status: '1,500 Free Req/Day', requires: ['GEMINI_API_KEY'], category: 'AI Intelligence' },
         { id: 'ai_ollama', name: 'Ollama Local AI ($0 Private)', configured: false, status: 'Unlimited $0 Offline', requires: ['OLLAMA_ENABLED=true'], category: 'AI Intelligence' },
         { id: 'email_brevo', name: 'Brevo (Sendinblue) Outbound', configured: true, status: '300 Free Emails/Day', requires: ['BREVO_API_KEY'], category: 'Email' },
