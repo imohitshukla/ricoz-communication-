@@ -46,9 +46,19 @@ const SAMPLE_ENTERPRISE_LEADS: EnterpriseLead[] = [
     id: 'lead_00',
     name: 'Mohit Shukla',
     phoneNumber: '+91 7068896437',
-    email: 'mohitshukla57662@gmail.com',
+    email: 'mohitshukla56672@gmail.com',
     company: 'Ricoz Omnichannel HQ',
     tags: [{ id: 't0', name: 'VIP Enterprise', color: '#00a688' }, { id: 't0b', name: 'Verified', color: '#3b82f6' }],
+    status: 'Verified',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'lead_00b',
+    name: 'Mohit Shukla (Secondary)',
+    phoneNumber: '+91 7068896437',
+    email: 'mohitshukla57662@gmail.com',
+    company: 'Ricoz Omnichannel HQ',
+    tags: [{ id: 't0', name: 'VIP Enterprise', color: '#00a688' }],
     status: 'Verified',
     createdAt: new Date().toISOString()
   },

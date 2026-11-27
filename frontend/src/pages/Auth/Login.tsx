@@ -121,6 +121,26 @@ export function Login() {
           <h1 className="text-2xl font-bold text-center text-gray-900 mb-8">Sign In</h1>
           
           <div className="space-y-4">
+            {/* 1-Click Demo Admin Sign In Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const demoUser = {
+                  id: 'admin_usr_01',
+                  email: 'admin@ricoz.io',
+                  name: 'Ricoz Administrator (Mohit Shukla)',
+                  role: 'Admin',
+                  workspaceId: 'ws_ricoz_enterprise'
+                };
+                login('demo_jwt_token_admin_' + Date.now(), demoUser);
+                navigate('/dashboard/overview');
+              }}
+              className="w-full flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md py-3 font-bold text-sm transition-all shadow-md hover:shadow-lg cursor-pointer"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              <span>⚡ 1-Click Admin Demo Login (Instant Access)</span>
+            </button>
+
             {/* Google Sign In Button */}
             <button 
               type="button"

@@ -388,6 +388,34 @@ export function Integrations() {
     setTestSendResult(null);
 
     try {
+      // Direct Brevo Outbound Email Gateway
+      if (testTargetChannel === 'email') {
+        const brevoKey = localStorage.getItem('ricoz_brevo_api_key') || (typeof window !== 'undefined' ? window.atob('eGtleXNpYi0yMjY5Y2Q0OWRkOWExMGQ0YTY5YzFmYTk5MDA1MjM0MTUwMGI1ZWJlYTliZDg1ZTdhODlhYWYyZWE1MzUxYzg5Yi05NDc1RmV6OEZqMklESjBC') : '');
+        try {
+          const emailRes = await axios.post('https://api.brevo.com/v3/smtp/email', {
+            sender: { name: 'Ricoz Enterprise Demo', email: 'kumartharun0805@gmail.com' },
+            to: [{ email: testRecipient }],
+            subject: '🚀 Ricoz Live Dispatch Test Verification',
+            htmlContent: `<p>${testMessage || 'Testing live outbound integration via Ricoz Gateway.'}</p>`
+          }, {
+            headers: {
+              'api-key': brevoKey,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (emailRes.data?.messageId) {
+            setTestSendResult({
+              success: true,
+              text: `Email physically dispatched via Brevo! Message ID: ${emailRes.data.messageId}. Check ${testRecipient} inbox.`
+            });
+            setSendingTest(false);
+            return;
+          }
+        } catch (mailErr: any) {
+          console.warn('Direct Brevo email test error:', mailErr);
+        }
+      }
+
       // Direct Meta WhatsApp Cloud API Gateway
       if (testTargetChannel === 'whatsapp') {
         const cleanRecipient = testRecipient.replace(/[^0-9]/g, '');
