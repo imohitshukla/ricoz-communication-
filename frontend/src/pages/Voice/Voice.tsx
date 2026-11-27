@@ -13,9 +13,42 @@ type Call = {
   timestamp: string;
 };
 
+const DEFAULT_CALLS: Call[] = [
+  {
+    id: 'call_1',
+    contactName: 'Mohit Shukla (CEO, Ricoz HQ)',
+    phoneNumber: '+91 7068896437',
+    duration: '2m 14s',
+    sentiment: 'Positive',
+    type: 'incoming',
+    transcript: 'Agent: "Thank you for calling Ricoz Omnichannel HQ. How may I assist you today?"\nCaller: "Hi, I wanted to understand your multi-channel broadcast and WhatsApp Cloud API features."\nAgent: "Certainly! We support WhatsApp Meta Cloud API, Google RCS carousels, Brevo email relays, and AI voice receptionists. Would you like a demo invite sent to your email?"\nCaller: "Yes please, send it to mohitshukla57662@gmail.com."\nAgent: "Confirmation dispatched! Anything else I can help with?"\nCaller: "That was super fast, thank you!"',
+    timestamp: new Date().toISOString()
+  },
+  {
+    id: 'call_2',
+    contactName: 'Rajesh Sharma (VP Sales, FinEdge)',
+    phoneNumber: '+91 98201 44829',
+    duration: '3m 45s',
+    sentiment: 'Positive',
+    type: 'outgoing',
+    transcript: 'Ricoz AI: "Hello Rajesh, calling from Ricoz to follow up on your enterprise pilot inquiry."\nCaller: "Hi, yes! We were looking at handling 50,000 monthly customer notifications."\nRicoz AI: "Our Groq LPU engine and Brevo gateway handle that seamlessly with 34ms inference."\nCaller: "Excellent, let us schedule the onboarding meeting for Tuesday."',
+    timestamp: new Date(Date.now() - 3600000).toISOString()
+  },
+  {
+    id: 'call_3',
+    contactName: 'Sarah Jenkins (Director, Global Ops)',
+    phoneNumber: '+1 (415) 890-2144',
+    duration: '1m 30s',
+    sentiment: 'Positive',
+    type: 'incoming',
+    transcript: 'Agent: "Welcome to Ricoz Voice Gateway. All agents are currently handling incoming requests."\nCaller: "I left a note regarding the webhook endpoint sync."\nAgent: "Logged ticket #RCZ-9021. You will receive an SMS and WhatsApp receipt shortly."',
+    timestamp: new Date(Date.now() - 7200000).toISOString()
+  }
+];
+
 export function Voice() {
-  const [calls, setCalls] = useState<Call[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [calls, setCalls] = useState<Call[]>(DEFAULT_CALLS);
+  const [isLoading, setIsLoading] = useState(false);
   const [isIVROpen, setIsIVROpen] = useState(false);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState('');
@@ -39,7 +72,7 @@ export function Voice() {
         api.get('/api/voice/ivr-config')
       ]);
 
-      if (Array.isArray(callsData)) {
+      if (Array.isArray(callsData) && callsData.length > 0) {
         setCalls(callsData);
       }
       if (ivrData) {

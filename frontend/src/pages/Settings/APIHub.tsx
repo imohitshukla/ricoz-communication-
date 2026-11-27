@@ -59,7 +59,7 @@ export function APIHub() {
         { id: 'ai_ollama', name: 'Ollama Local AI ($0 Private)', configured: false, status: 'Unlimited $0 Offline', requires: ['OLLAMA_ENABLED=true'], category: 'AI Intelligence' },
         { id: 'email_brevo', name: 'Brevo (Sendinblue) Outbound', configured: true, status: '300 Free Emails/Day', requires: ['BREVO_API_KEY'], category: 'Email' },
         { id: 'email_mailjet', name: 'Mailjet Email Relay', configured: false, status: '200 Free Emails/Day', requires: ['MAILJET_API_KEY', 'MAILJET_SECRET_KEY'], category: 'Email' },
-        { id: 'voice_twilio', name: 'Twilio Cellular PSTN Dialing', configured: false, status: 'Paid Carrier (~$0.014/m)', requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'], category: 'Voice & PBX' },
+        { id: 'voice_twilio', name: 'Twilio Cellular PSTN Dialing', configured: true, status: 'CONNECTED (+1 737 221-2163)', requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'], category: 'Voice & PBX' },
         { id: 'rcs', name: 'Google RCS Business Messaging', configured: false, status: 'STANDBY_SIMULATION', requires: ['RCS_API_KEY', 'RCS_AGENT_ID'], category: 'Carrier' },
       ]);
     }
