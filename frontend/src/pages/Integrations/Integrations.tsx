@@ -221,8 +221,8 @@ const DEFAULT_CHANNELS: ChannelItem[] = [
   },
   {
     id: 'voice_twilio',
-    name: 'Twilio Outbound PSTN Dialing',
-    provider: 'Twilio PSTN Carrier (Cellular/Landline)',
+    name: 'Twilio Multi-Channel (Voice PSTN, SMS & WhatsApp)',
+    provider: 'Twilio PSTN Carrier & Messaging Gateway',
     icon: '📞',
     color: '#F22F46',
     bgLight: 'rgba(242, 47, 70, 0.1)',
@@ -231,8 +231,8 @@ const DEFAULT_CHANNELS: ChannelItem[] = [
     category: 'Voice & PBX',
     freeTier: '⚡ Commercial Telecom Carrier Gateway (~$0.014/min)',
     isFreeAlternative: false,
-    description: 'Commercial cellular and landline phone network connection for outbound AI cold calling to any mobile number. Requires active Twilio credits.',
-    liveFeatures: ['Real PSTN cellular call placement', 'Global SMS messaging dispatch', 'Automated call recording & transcription', 'Pre-recorded audio drops'],
+    description: 'Commercial cellular phone network connection for outbound AI cold calling, SMS text messaging, and Twilio WhatsApp Sandbox without Meta credit card requirements.',
+    liveFeatures: ['Real PSTN cellular call placement (+1 737 221-2163)', 'Global SMS messaging dispatch', 'Twilio WhatsApp Sandbox (+1 415 523 8886) - No Meta card needed', 'Automated call recording & transcription'],
     requires: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'],
     docsUrl: 'https://www.twilio.com/docs/voice',
     setupSteps: [
@@ -831,9 +831,22 @@ export function Integrations() {
                   <option value="sms">📱 SMS Text Message (Twilio SMS)</option>
                   <option value="voice">📞 Phone Call (Twilio Voice Engine)</option>
                   <option value="whatsapp">💬 WhatsApp Message (Meta Cloud API)</option>
-                  <option value="email">✉️ Email (Resend / SMTP)</option>
+                  <option value="whatsapp_twilio">💬 WhatsApp Sandbox (Twilio - No Meta Card Required)</option>
+                  <option value="email">✉️ Email (Brevo Outbound Gateway)</option>
                   <option value="rcs">📱 Google RCS Rich Message (RBM)</option>
                 </select>
+
+                {testTargetChannel === 'whatsapp_twilio' && (
+                  <div className="mt-2.5 bg-blue-50 border border-blue-200/90 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
+                    <strong>💡 Twilio WhatsApp Sandbox:</strong> No Meta credit card or approval needed! Twilio sends from <code className="font-mono font-bold">+1 (415) 523-8886</code>. To join from your phone, send your Twilio join code (e.g. <code className="font-mono">join &lt;keyword&gt;</code>) to <strong>+1 415 523 8886</strong> on WhatsApp.
+                  </div>
+                )}
+
+                {testTargetChannel === 'sms' && (
+                  <div className="mt-2.5 bg-amber-50 border border-amber-200/90 rounded-xl p-3 text-xs text-amber-900 leading-relaxed">
+                    <strong>ℹ️ Twilio Trial Notice:</strong> Twilio trial accounts require an upgraded balance to send custom API text messages to Indian numbers (+91) due to TRAI telecom rules. Live PSTN cellular calling to verified numbers is active.
+                  </div>
+                )}
               </div>
 
               <div>
