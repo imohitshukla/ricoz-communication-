@@ -44,11 +44,31 @@ const STORAGE_KEY = 'ricoz_enterprise_contacts_v3';
 const SAMPLE_ENTERPRISE_LEADS: EnterpriseLead[] = [
   {
     id: 'lead_00',
-    name: 'Mohit Shukla',
+    name: 'Mohit Shukla (Founder & CEO)',
     phoneNumber: '+91 7068896437',
     email: 'mohitshukla56672@gmail.com',
     company: 'Ricoz Omnichannel HQ',
     tags: [{ id: 't0', name: 'VIP Enterprise', color: '#00a688' }, { id: 't0b', name: 'Verified', color: '#3b82f6' }],
+    status: 'Verified',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'lead_terrence',
+    name: 'Terrence',
+    phoneNumber: '+91 9920307107',
+    email: 'terrence.ricoz@gmail.com',
+    company: 'Ricoz Enterprise Team',
+    tags: [{ id: 't_terr', name: 'Executive', color: '#00a688' }, { id: 't_v1', name: 'Verified', color: '#3b82f6' }],
+    status: 'Verified',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'lead_sakina',
+    name: 'Sakina',
+    phoneNumber: '+91 8369411469',
+    email: 'sakina.ricoz@gmail.com',
+    company: 'Ricoz Enterprise Team',
+    tags: [{ id: 't_sak', name: 'Executive', color: '#8b5cf6' }, { id: 't_v2', name: 'Verified', color: '#3b82f6' }],
     status: 'Verified',
     createdAt: new Date().toISOString()
   },

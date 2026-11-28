@@ -201,7 +201,7 @@ export function EmailMarketing() {
 
   // Test email & Outbound Gateway
   const [testEmailFor, setTestEmailFor] = useState<string | null>(null);
-  const [testEmailAddr, setTestEmailAddr] = useState('mohitshukla56672@gmail.com, mohitshukla57662@gmail.com');
+  const [testEmailAddr, setTestEmailAddr] = useState('terrence.ricoz@gmail.com, sakina.ricoz@gmail.com, mohitshukla56672@gmail.com');
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [showGatewayModal, setShowGatewayModal] = useState(false);
   const [gatewayConfig, setGatewayConfig] = useState(() => {
